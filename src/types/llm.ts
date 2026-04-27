@@ -65,3 +65,98 @@ export type ChatRunResult = {
     arguments: string
   }>
 }
+
+// ── Embeddings & Search ──────────────────────────────────────
+
+export type EmbeddingRequest = {
+  provider: Provider
+  model: string
+  input: string | string[]
+}
+
+export type EmbeddingResult = {
+  embeddings: number[][]
+  model: string
+  usage: { prompt_tokens: number; total_tokens: number }
+  latencyMs: number
+}
+
+/** 단일 corpus item과 그 query 대비 유사도 점수. */
+export type SearchHit = {
+  index: number
+  text: string
+  score: number
+}
+
+export type SearchResult = {
+  query: string
+  hits: SearchHit[]
+  embeddingModel: string
+  latencyMs: number
+  totalTokens: number
+}
+
+/** Semantic search 요청 — query + corpus를 한 번에 임베딩 + 정렬. */
+export type SearchRequest = {
+  provider: 'github-models'
+  model: string
+  query: string
+  corpus: string[]
+  topK: number
+}
+
+// ── RAG ──────────────────────────────────────
+
+export type RagRequest = {
+  provider: 'github-models'
+  embeddingModel: string
+  chatModel: string
+  query: string
+  corpus: string[]
+  topK: number
+  systemPreamble: string
+  temperature: number
+  max_tokens: number
+}
+
+export type RagResult = {
+  retrieved: SearchHit[]
+  output: string
+  embeddingModel: string
+  chatModel: string
+  totalLatencyMs: number
+  embedTokens: number
+  chatPromptTokens: number
+  chatCompletionTokens: number
+}
+
+// ── Agent (function-call loop) ──────────────────────────────
+
+export type AgentRequest = {
+  provider: 'github-models'
+  model: string
+  query: string
+  systemPreamble: string
+  /** tool 이름 → JS 함수. 클라이언트에서 즉시 실행. */
+  toolDefinitions: ToolDefinition[]
+  maxIterations: number
+  temperature: number
+}
+
+export type AgentStep = {
+  iteration: number
+  /** 모델이 한 발화 — 텍스트(있으면)와 호출 요청한 도구들 */
+  assistantContent: string
+  toolCalls: Array<{ id: string; name: string; arguments: string }>
+  /** 우리가 실행한 도구 결과 (toolCalls 순서와 매칭) */
+  toolResults: Array<{ name: string; result: string }>
+}
+
+export type AgentResult = {
+  steps: AgentStep[]
+  /** 마지막 assistant 응답 (모든 도구 호출이 끝난 후) */
+  finalAnswer: string
+  iterationsUsed: number
+  totalLatencyMs: number
+  model: string
+}

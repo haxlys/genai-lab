@@ -7,15 +7,21 @@ import { Separator } from '#/components/ui/separator'
 import { VariableForm } from './VariableForm'
 import { OutputPanel, type RunState } from './OutputPanel'
 
-import { generateImage, streamChat } from '#/lib/llm'
+import { generateImage, runAgent, runEmbeddingSearch, runRag, streamChat } from '#/lib/llm'
 import { saveRun } from '#/lib/storage/runs'
 import { getKeyForProvider, getSettings } from '#/lib/storage/settings'
 import type { VariableSpec } from '#/types/lesson'
+import type {
+  AgentRequest,
+  ChatRequest,
+  RagRequest,
+  SearchRequest,
+} from '#/types/llm'
+import type { ImageRequest } from '#/types/image'
 
 /**
  * 레슨/Playground에서 공통 사용하는 Run 패널.
- * VariableForm으로 입력 받아 Run 시 streamChat으로 호출, OutputPanel에 결과 표시.
- * 성공 시 localStorage에 Run 자동 저장.
+ * spec.kind에 따라 5가지 흐름 분기: chat / image / embedding / rag / agent.
  */
 export function RunPanel({
   spec,
@@ -35,13 +41,11 @@ export function RunPanel({
   )
   const abortRef = useRef<AbortController | null>(null)
 
-  // 외부에서 initialValues가 바뀌면(history 복원 등) 폼 리셋용 state도 함께 갱신
   useEffect(() => {
     if (initialValues) setRestoreFromPreset(initialValues)
   }, [initialValues])
 
   const handleRun = useCallback(async () => {
-    // 이미 실행 중이면 중단
     if (state.status === 'running') {
       abortRef.current?.abort()
       return
@@ -49,7 +53,6 @@ export function RunPanel({
 
     const request = spec.buildRequest(values)
     const settings = getSettings()
-    // ImageRequest의 provider는 'openai'|'azure', ChatRequest는 'github-models'|'openai'|'azure'|'huggingface'
     const apiKey = getKeyForProvider(request.provider, settings)
 
     if (!apiKey) {
@@ -63,14 +66,14 @@ export function RunPanel({
     abortRef.current = new AbortController()
 
     try {
-      if (spec.kind === 'image') {
-        // 이미지 생성: ImageRequest 받아 generateImage 호출
-        const imageRequest = request as Extract<ReturnType<typeof spec.buildRequest>, { prompt: string }>
+      const kind = spec.kind ?? 'chat'
+
+      if (kind === 'image') {
+        const imageRequest = request as ImageRequest
         const result = await generateImage(imageRequest, {
           apiKey,
           signal: abortRef.current.signal,
         })
-
         setState({
           status: 'image-success',
           images: result.images,
@@ -78,14 +81,8 @@ export function RunPanel({
           model: result.model,
           promptUsed: imageRequest.prompt,
         })
-
-        // history에 저장 — output 필드에 첫 이미지 URL과 revised prompt 텍스트 표시
         const summary = result.images
-          .map((img, i) => {
-            const head = `[image ${i + 1}] ${img.url ?? '(b64 inline)'}`
-            const revised = img.revised_prompt ? `\n  revised: ${img.revised_prompt}` : ''
-            return head + revised
-          })
+          .map((img, i) => `[image ${i + 1}] ${img.url ?? '(b64 inline)'}${img.revised_prompt ? `\n  revised: ${img.revised_prompt}` : ''}`)
           .join('\n')
         saveRun({
           lessonId,
@@ -99,10 +96,112 @@ export function RunPanel({
             completionTokens: 0,
           },
         })
-        onRunComplete?.()
+      } else if (kind === 'embedding') {
+        const searchRequest = request as SearchRequest
+        const result = await runEmbeddingSearch({
+          apiKey,
+          signal: abortRef.current.signal,
+          model: searchRequest.model,
+          query: searchRequest.query,
+          corpus: searchRequest.corpus,
+          topK: searchRequest.topK,
+        })
+        setState({
+          status: 'embedding-success',
+          query: result.query,
+          hits: result.hits,
+          embeddingModel: result.embeddingModel,
+          latencyMs: result.latencyMs,
+          totalTokens: result.totalTokens,
+        })
+        const summary = result.hits
+          .map((h) => `#${h.index + 1} (${h.score.toFixed(3)}) ${h.text.slice(0, 80)}`)
+          .join('\n')
+        saveRun({
+          lessonId,
+          inputs: values,
+          output: summary,
+          metadata: {
+            provider: searchRequest.provider,
+            model: result.embeddingModel,
+            latencyMs: result.latencyMs,
+            promptTokens: result.totalTokens,
+            completionTokens: 0,
+          },
+        })
+      } else if (kind === 'rag') {
+        const ragRequest = request as RagRequest
+        const result = await runRag(ragRequest, {
+          apiKey,
+          signal: abortRef.current.signal,
+          onChunk: (delta) => {
+            setState((prev) => {
+              if (prev.status !== 'running') return prev
+              return { status: 'running', partial: prev.partial + delta }
+            })
+          },
+        })
+        setState({
+          status: 'rag-success',
+          retrieved: result.retrieved,
+          output: result.output,
+          query: ragRequest.query,
+          embeddingModel: result.embeddingModel,
+          chatModel: result.chatModel,
+          latencyMs: result.totalLatencyMs,
+          embedTokens: result.embedTokens,
+          chatPromptTokens: result.chatPromptTokens,
+          chatCompletionTokens: result.chatCompletionTokens,
+        })
+        const summary = `[검색된 ${result.retrieved.length}개]\n${result.retrieved
+          .map((h, i) => `[${i + 1}] (${h.score.toFixed(2)}) ${h.text.slice(0, 60)}`)
+          .join('\n')}\n\n[답변]\n${result.output}`
+        saveRun({
+          lessonId,
+          inputs: values,
+          output: summary,
+          metadata: {
+            provider: ragRequest.provider,
+            model: `${result.embeddingModel} + ${result.chatModel}`,
+            latencyMs: result.totalLatencyMs,
+            promptTokens: result.chatPromptTokens,
+            completionTokens: result.chatCompletionTokens,
+          },
+        })
+      } else if (kind === 'agent') {
+        const agentRequest = request as AgentRequest
+        const result = await runAgent(agentRequest, {
+          apiKey,
+          signal: abortRef.current.signal,
+        })
+        setState({
+          status: 'agent-success',
+          steps: result.steps,
+          finalAnswer: result.finalAnswer,
+          iterationsUsed: result.iterationsUsed,
+          latencyMs: result.totalLatencyMs,
+          model: result.model,
+        })
+        const summary = `[${result.iterationsUsed} iterations]\n` +
+          result.steps
+            .map((s) => `step ${s.iteration}: ${s.toolCalls.length} tool call(s) → ${s.toolResults.map((r) => r.name).join(', ') || '(none)'}`)
+            .join('\n') +
+          `\n\n[최종]\n${result.finalAnswer}`
+        saveRun({
+          lessonId,
+          inputs: values,
+          output: summary,
+          metadata: {
+            provider: agentRequest.provider,
+            model: result.model,
+            latencyMs: result.totalLatencyMs,
+            promptTokens: 0,
+            completionTokens: 0,
+          },
+        })
       } else {
-        // chat (default): 기존 streaming 흐름
-        const chatRequest = request as Extract<ReturnType<typeof spec.buildRequest>, { messages: unknown }>
+        // chat (default)
+        const chatRequest = request as ChatRequest
         const result = await streamChat(chatRequest, {
           apiKey,
           signal: abortRef.current.signal,
@@ -115,19 +214,13 @@ export function RunPanel({
             }
           },
         })
-
-        // tool_calls(function calling)가 있으면 출력에 함께 표시
         const toolCallSection = result.toolCalls?.length
           ? `\n\n──── Tool calls (${result.toolCalls.length}) ────\n` +
             result.toolCalls
-              .map(
-                (tc, i) =>
-                  `[${i + 1}] ${tc.name}\n  args: ${tc.arguments}`,
-              )
+              .map((tc, i) => `[${i + 1}] ${tc.name}\n  args: ${tc.arguments}`)
               .join('\n')
           : ''
         const finalOutput = result.output + toolCallSection
-
         setState({
           status: 'success',
           output: finalOutput,
@@ -136,7 +229,6 @@ export function RunPanel({
           completionTokens: result.usage.completion_tokens,
           model: result.model,
         })
-
         saveRun({
           lessonId,
           inputs: values,
@@ -149,9 +241,9 @@ export function RunPanel({
             completionTokens: result.usage.completion_tokens,
           },
         })
-
-        onRunComplete?.()
       }
+
+      onRunComplete?.()
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
         setState({ status: 'idle' })
@@ -166,7 +258,7 @@ export function RunPanel({
         output: '',
         metadata: {
           provider: r.provider,
-          model: r.model,
+          model: 'model' in r ? r.model : 'unknown',
           latencyMs: 0,
           promptTokens: 0,
           completionTokens: 0,

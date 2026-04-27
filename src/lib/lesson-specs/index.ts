@@ -4,8 +4,12 @@
  * lesson-specs/<id>.ts 파일을 작성한 뒤 여기에 등록하면, 해당 레슨 페이지의
  * 우측 인터랙티브 패널이 활성화된다.
  *
- * 미구현: 08(검색/embedding API), 09(이미지 생성 API), 15(RAG/벡터DB),
- * 17(에이전트 오케스트레이션). 이들은 추가 인프라/API 어댑터 필요해 v2 과제.
+ * spec.kind에 따라 RunPanel이 분기:
+ *   - chat (default): chat completions 스트리밍
+ *   - image: DALL-E 이미지 생성 (OpenAI direct)
+ *   - embedding: query+corpus 임베딩 + cosine 유사도 정렬
+ *   - rag: embedding + chat 합성 (검색된 chunk를 컨텍스트로 주입)
+ *   - agent: function-call loop (mock tools 자동 실행)
  */
 
 import type { VariableSpec } from '#/types/lesson'
@@ -13,9 +17,13 @@ import { lesson04Spec } from './04-prompt-engineering-fundamentals'
 import { lesson05Spec } from './05-advanced-prompts'
 import { lesson06Spec } from './06-text-generation-apps'
 import { lesson07Spec } from './07-building-chat-applications'
+import { lesson08Spec } from './08-building-search-applications'
 import { lesson09Spec } from './09-building-image-applications'
+import { lesson10Spec } from './10-building-low-code-ai-applications'
 import { lesson11Spec } from './11-integrating-with-function-calling'
+import { lesson15Spec } from './15-rag-and-vector-databases'
 import { lesson16Spec } from './16-open-source-models'
+import { lesson17Spec } from './17-ai-agents'
 import { lesson19Spec } from './19-slm'
 import { lesson20Spec } from './20-mistral'
 import { lesson21Spec } from './21-meta'
@@ -25,9 +33,13 @@ const REGISTRY: Record<string, VariableSpec> = {
   '05-advanced-prompts': lesson05Spec,
   '06-text-generation-apps': lesson06Spec,
   '07-building-chat-applications': lesson07Spec,
+  '08-building-search-applications': lesson08Spec,
   '09-building-image-applications': lesson09Spec,
+  '10-building-low-code-ai-applications': lesson10Spec,
   '11-integrating-with-function-calling': lesson11Spec,
+  '15-rag-and-vector-databases': lesson15Spec,
   '16-open-source-models': lesson16Spec,
+  '17-ai-agents': lesson17Spec,
   '19-slm': lesson19Spec,
   '20-mistral': lesson20Spec,
   '21-meta': lesson21Spec,

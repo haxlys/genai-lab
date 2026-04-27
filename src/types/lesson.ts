@@ -1,4 +1,4 @@
-import type { ChatRequest } from './llm'
+import type { AgentRequest, ChatRequest, RagRequest, SearchRequest } from './llm'
 import type { ImageRequest } from './image'
 
 export type LessonType = 'Setup' | 'Learn' | 'Build'
@@ -72,6 +72,27 @@ export type VariableSpec =
       kind: 'image'
       fields: Field[]
       buildRequest: (values: Record<string, unknown>) => ImageRequest
+      typescriptSnippet?: string
+      presets?: Preset[]
+    }
+  | {
+      kind: 'embedding'
+      fields: Field[]
+      buildRequest: (values: Record<string, unknown>) => SearchRequest
+      typescriptSnippet?: string
+      presets?: Preset[]
+    }
+  | {
+      kind: 'rag'
+      fields: Field[]
+      buildRequest: (values: Record<string, unknown>) => RagRequest
+      typescriptSnippet?: string
+      presets?: Preset[]
+    }
+  | {
+      kind: 'agent'
+      fields: Field[]
+      buildRequest: (values: Record<string, unknown>) => AgentRequest
       typescriptSnippet?: string
       presets?: Preset[]
     }

@@ -87,7 +87,7 @@
     "type": "Build",
     "weekRecommended": 3,
     "apiCallType": "embedding",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "09-building-image-applications",
@@ -107,7 +107,7 @@
     "type": "Build",
     "weekRecommended": null,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "11-integrating-with-function-calling",
@@ -157,7 +157,7 @@
     "type": "Build",
     "weekRecommended": 3,
     "apiCallType": "chat",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "16-open-source-models",
@@ -177,7 +177,7 @@
     "type": "Build",
     "weekRecommended": 3,
     "apiCallType": "function-call",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "18-fine-tuning",
