@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "sync-content": "tsx scripts/sync-content.ts"
+    "sync-content": "tsx scripts/sync-content.ts",
+    "smoke-test": "tsx scripts/smoke-test.ts"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.2.8",

@@ -37,7 +37,12 @@ export async function streamChatCompletion(
       'Content-Type': 'application/json',
       Accept: 'text/event-stream',
     },
-    body: JSON.stringify({ ...body, stream: true }),
+    body: JSON.stringify({
+      ...body,
+      stream: true,
+      // 마지막 청크에 prompt_tokens/completion_tokens를 포함시킴
+      stream_options: { include_usage: true },
+    }),
     signal: options.signal,
   })
 
@@ -63,24 +68,27 @@ export async function streamChatCompletion(
       try {
         const json = JSON.parse(event.data) as OpenAiSseChunk
         const choice = json.choices?.[0]
-        if (!choice) return
-        const delta = choice.delta?.content ?? ''
-        const toolCalls = choice.delta?.tool_calls?.map((tc) => ({
+        // include_usage 청크는 choices가 빈 배열이지만 usage가 채워져 있다 — 그것도 통과시켜야 함
+        const delta = choice?.delta?.content ?? ''
+        const toolCalls = choice?.delta?.tool_calls?.map((tc) => ({
           id: tc.id ?? '',
           name: tc.function?.name ?? '',
           arguments: tc.function?.arguments ?? '',
         }))
+        const usage = json.usage
+          ? {
+              prompt_tokens: json.usage.prompt_tokens,
+              completion_tokens: json.usage.completion_tokens,
+              total_tokens: json.usage.total_tokens,
+            }
+          : undefined
+        // delta도 없고 usage도 없는 청크는 keepalive — skip
+        if (!delta && !usage && !toolCalls && choice?.finish_reason == null) return
         options.onChunk({
           delta,
-          done: choice.finish_reason !== null && choice.finish_reason !== undefined,
+          done: choice?.finish_reason !== null && choice?.finish_reason !== undefined,
           model: json.model,
-          usage: json.usage
-            ? {
-                prompt_tokens: json.usage.prompt_tokens,
-                completion_tokens: json.usage.completion_tokens,
-                total_tokens: json.usage.total_tokens,
-              }
-            : undefined,
+          usage,
           tool_calls: toolCalls,
         })
       } catch {
