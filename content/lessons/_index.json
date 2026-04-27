@@ -97,7 +97,7 @@
     "type": "Build",
     "weekRecommended": 2,
     "apiCallType": "image",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "10-building-low-code-ai-applications",

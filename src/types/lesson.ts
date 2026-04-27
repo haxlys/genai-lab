@@ -1,4 +1,5 @@
 import type { ChatRequest } from './llm'
+import type { ImageRequest } from './image'
 
 export type LessonType = 'Setup' | 'Learn' | 'Build'
 
@@ -58,14 +59,22 @@ export type Preset = {
   values: Record<string, unknown>
 }
 
-export type VariableSpec = {
-  fields: Field[]
-  buildRequest: (values: Record<string, unknown>) => ChatRequest
-  /** Optional override of the synthesized TypeScript reference shown to users. */
-  typescriptSnippet?: string
-  /** Optional quick-start presets — clicked button populates the form. */
-  presets?: Preset[]
-}
+/** spec.kind에 따라 buildRequest 반환 타입과 RunPanel 분기 결정. 기본값 'chat'. */
+export type VariableSpec =
+  | {
+      kind?: 'chat'
+      fields: Field[]
+      buildRequest: (values: Record<string, unknown>) => ChatRequest
+      typescriptSnippet?: string
+      presets?: Preset[]
+    }
+  | {
+      kind: 'image'
+      fields: Field[]
+      buildRequest: (values: Record<string, unknown>) => ImageRequest
+      typescriptSnippet?: string
+      presets?: Preset[]
+    }
 
 /** Lesson metadata + content. JSON-serializable subset (no functions). */
 export type LessonContent = {

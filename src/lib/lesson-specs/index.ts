@@ -13,6 +13,7 @@ import { lesson04Spec } from './04-prompt-engineering-fundamentals'
 import { lesson05Spec } from './05-advanced-prompts'
 import { lesson06Spec } from './06-text-generation-apps'
 import { lesson07Spec } from './07-building-chat-applications'
+import { lesson09Spec } from './09-building-image-applications'
 import { lesson11Spec } from './11-integrating-with-function-calling'
 import { lesson16Spec } from './16-open-source-models'
 import { lesson19Spec } from './19-slm'
@@ -24,6 +25,7 @@ const REGISTRY: Record<string, VariableSpec> = {
   '05-advanced-prompts': lesson05Spec,
   '06-text-generation-apps': lesson06Spec,
   '07-building-chat-applications': lesson07Spec,
+  '09-building-image-applications': lesson09Spec,
   '11-integrating-with-function-calling': lesson11Spec,
   '16-open-source-models': lesson16Spec,
   '19-slm': lesson19Spec,

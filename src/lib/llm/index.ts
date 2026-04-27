@@ -1,10 +1,12 @@
 /**
  * Provider-agnostic LLM 어댑터.
- * MVP에서는 github-models만 구현. openai/azure는 후속 단계에서 추가.
+ * Chat completions: github-models (MVP). Image generation: openai-image.
  */
 
 import * as githubModels from './github-models'
+import { generateImageOpenAi } from './openai-image'
 import type { ChatRequest, ChatResponseChunk, ChatRunResult } from '#/types/llm'
+import type { ImageRequest, ImageResult } from '#/types/image'
 
 export type StreamOptions = {
   apiKey: string
@@ -52,5 +54,18 @@ export async function streamChat(
     model,
     latencyMs,
     toolCalls: toolCalls.length > 0 ? toolCalls : undefined,
+  }
+}
+
+/** 이미지 생성 — 현재 OpenAI direct만 지원. azure는 v2. */
+export async function generateImage(
+  request: ImageRequest,
+  options: { apiKey: string; signal?: AbortSignal },
+): Promise<ImageResult> {
+  switch (request.provider) {
+    case 'openai':
+      return generateImageOpenAi(request, options)
+    case 'azure':
+      throw new Error('Azure 이미지 생성은 아직 구현되지 않았습니다.')
   }
 }

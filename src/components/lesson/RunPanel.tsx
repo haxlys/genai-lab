@@ -7,7 +7,7 @@ import { Separator } from '#/components/ui/separator'
 import { VariableForm } from './VariableForm'
 import { OutputPanel, type RunState } from './OutputPanel'
 
-import { streamChat } from '#/lib/llm'
+import { generateImage, streamChat } from '#/lib/llm'
 import { saveRun } from '#/lib/storage/runs'
 import { getKeyForProvider, getSettings } from '#/lib/storage/settings'
 import type { VariableSpec } from '#/types/lesson'
@@ -49,6 +49,7 @@ export function RunPanel({
 
     const request = spec.buildRequest(values)
     const settings = getSettings()
+    // ImageRequest의 provider는 'openai'|'azure', ChatRequest는 'github-models'|'openai'|'azure'|'huggingface'
     const apiKey = getKeyForProvider(request.provider, settings)
 
     if (!apiKey) {
@@ -62,55 +63,95 @@ export function RunPanel({
     abortRef.current = new AbortController()
 
     try {
-      const result = await streamChat(request, {
-        apiKey,
-        signal: abortRef.current.signal,
-        onChunk: (chunk) => {
-          if (chunk.delta) {
-            setState((prev) => {
-              if (prev.status !== 'running') return prev
-              return { status: 'running', partial: prev.partial + chunk.delta }
-            })
-          }
-        },
-      })
+      if (spec.kind === 'image') {
+        // 이미지 생성: ImageRequest 받아 generateImage 호출
+        const imageRequest = request as Extract<ReturnType<typeof spec.buildRequest>, { prompt: string }>
+        const result = await generateImage(imageRequest, {
+          apiKey,
+          signal: abortRef.current.signal,
+        })
 
-      // tool_calls(function calling)가 있으면 출력에 함께 표시
-      const toolCallSection = result.toolCalls?.length
-        ? `\n\n──── Tool calls (${result.toolCalls.length}) ────\n` +
-          result.toolCalls
-            .map(
-              (tc, i) =>
-                `[${i + 1}] ${tc.name}\n  args: ${tc.arguments}`,
-            )
-            .join('\n')
-        : ''
-      const finalOutput = result.output + toolCallSection
-
-      setState({
-        status: 'success',
-        output: finalOutput,
-        latencyMs: result.latencyMs,
-        promptTokens: result.usage.prompt_tokens,
-        completionTokens: result.usage.completion_tokens,
-        model: result.model,
-      })
-
-      // localStorage에 자동 저장
-      saveRun({
-        lessonId,
-        inputs: values,
-        output: finalOutput,
-        metadata: {
-          provider: request.provider,
+        setState({
+          status: 'image-success',
+          images: result.images,
+          latencyMs: result.latencyMs,
           model: result.model,
+          promptUsed: imageRequest.prompt,
+        })
+
+        // history에 저장 — output 필드에 첫 이미지 URL과 revised prompt 텍스트 표시
+        const summary = result.images
+          .map((img, i) => {
+            const head = `[image ${i + 1}] ${img.url ?? '(b64 inline)'}`
+            const revised = img.revised_prompt ? `\n  revised: ${img.revised_prompt}` : ''
+            return head + revised
+          })
+          .join('\n')
+        saveRun({
+          lessonId,
+          inputs: values,
+          output: summary,
+          metadata: {
+            provider: imageRequest.provider,
+            model: result.model,
+            latencyMs: result.latencyMs,
+            promptTokens: 0,
+            completionTokens: 0,
+          },
+        })
+        onRunComplete?.()
+      } else {
+        // chat (default): 기존 streaming 흐름
+        const chatRequest = request as Extract<ReturnType<typeof spec.buildRequest>, { messages: unknown }>
+        const result = await streamChat(chatRequest, {
+          apiKey,
+          signal: abortRef.current.signal,
+          onChunk: (chunk) => {
+            if (chunk.delta) {
+              setState((prev) => {
+                if (prev.status !== 'running') return prev
+                return { status: 'running', partial: prev.partial + chunk.delta }
+              })
+            }
+          },
+        })
+
+        // tool_calls(function calling)가 있으면 출력에 함께 표시
+        const toolCallSection = result.toolCalls?.length
+          ? `\n\n──── Tool calls (${result.toolCalls.length}) ────\n` +
+            result.toolCalls
+              .map(
+                (tc, i) =>
+                  `[${i + 1}] ${tc.name}\n  args: ${tc.arguments}`,
+              )
+              .join('\n')
+          : ''
+        const finalOutput = result.output + toolCallSection
+
+        setState({
+          status: 'success',
+          output: finalOutput,
           latencyMs: result.latencyMs,
           promptTokens: result.usage.prompt_tokens,
           completionTokens: result.usage.completion_tokens,
-        },
-      })
+          model: result.model,
+        })
 
-      onRunComplete?.()
+        saveRun({
+          lessonId,
+          inputs: values,
+          output: finalOutput,
+          metadata: {
+            provider: chatRequest.provider,
+            model: result.model,
+            latencyMs: result.latencyMs,
+            promptTokens: result.usage.prompt_tokens,
+            completionTokens: result.usage.completion_tokens,
+          },
+        })
+
+        onRunComplete?.()
+      }
     } catch (err) {
       if ((err as Error).name === 'AbortError') {
         setState({ status: 'idle' })
@@ -118,13 +159,14 @@ export function RunPanel({
       }
       const message = err instanceof Error ? err.message : String(err)
       setState({ status: 'error', message })
+      const r = spec.buildRequest(values)
       saveRun({
         lessonId,
         inputs: values,
         output: '',
         metadata: {
-          provider: spec.buildRequest(values).provider,
-          model: spec.buildRequest(values).model,
+          provider: r.provider,
+          model: r.model,
           latencyMs: 0,
           promptTokens: 0,
           completionTokens: 0,

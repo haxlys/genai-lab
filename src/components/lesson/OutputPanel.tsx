@@ -1,5 +1,6 @@
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react'
 import { Badge } from '#/components/ui/badge'
+import type { GeneratedImage } from '#/types/image'
 
 export type RunState =
   | { status: 'idle' }
@@ -11,6 +12,13 @@ export type RunState =
       promptTokens: number
       completionTokens: number
       model: string
+    }
+  | {
+      status: 'image-success'
+      images: GeneratedImage[]
+      latencyMs: number
+      model: string
+      promptUsed: string
     }
   | { status: 'error'; message: string }
 
@@ -37,6 +45,36 @@ export function OutputPanel({ state }: { state: RunState }) {
         {state.status === 'success' && (
           <pre className="whitespace-pre-wrap break-words font-sans text-sm">{state.output}</pre>
         )}
+        {state.status === 'image-success' && (
+          <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              {state.images.map((img, i) => (
+                <figure key={i} className="overflow-hidden rounded-md border bg-muted">
+                  {img.url ? (
+                    <a href={img.url} target="_blank" rel="noopener noreferrer">
+                      <img src={img.url} alt={`generated ${i + 1}`} className="h-auto w-full" />
+                    </a>
+                  ) : img.b64_json ? (
+                    <img
+                      src={`data:image/png;base64,${img.b64_json}`}
+                      alt={`generated ${i + 1}`}
+                      className="h-auto w-full"
+                    />
+                  ) : null}
+                  {img.revised_prompt && (
+                    <figcaption className="border-t px-3 py-2 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Revised prompt:</span>{' '}
+                      {img.revised_prompt}
+                    </figcaption>
+                  )}
+                </figure>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              요청한 프롬프트: <code className="rounded bg-muted px-1">{state.promptUsed}</code>
+            </p>
+          </div>
+        )}
         {state.status === 'error' && (
           <div className="space-y-2 text-sm text-destructive">
             <div className="flex items-center gap-2 font-medium">
@@ -61,6 +99,17 @@ export function OutputPanel({ state }: { state: RunState }) {
           </span>
         </div>
       )}
+      {state.status === 'image-success' && (
+        <div className="flex items-center gap-2 border-t px-4 py-2 text-xs">
+          <Badge variant="outline" className="font-mono">
+            {state.model}
+          </Badge>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">{state.latencyMs}ms</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">{state.images.length}장 생성</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -76,6 +125,7 @@ function Status({ state }: { state: RunState }) {
         </span>
       )
     case 'success':
+    case 'image-success':
       return (
         <span className="flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
           <CheckCircle2 className="h-3 w-3" /> 완료

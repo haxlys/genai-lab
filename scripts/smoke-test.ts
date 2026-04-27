@@ -48,6 +48,10 @@ async function main() {
   defaults.user = 'Show me 2 simple recipes with chicken. Just titles, no details.'
 
   const request = lesson06Spec.buildRequest(defaults)
+  // lesson06은 kind='chat'(default)이므로 ChatRequest 형태. 좁혀서 사용.
+  if (!('messages' in request)) {
+    throw new Error('smoke-test expects a chat spec')
+  }
   console.log(`📨 Model: ${request.model}, temp: ${request.temperature}, max_tokens: ${request.max_tokens}`)
   console.log(`💬 Prompt: "${(request.messages[1].content as string).slice(0, 80)}..."`)
   console.log('')
