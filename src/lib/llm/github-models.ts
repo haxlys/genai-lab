@@ -71,6 +71,7 @@ export async function streamChatCompletion(
         // include_usage 청크는 choices가 빈 배열이지만 usage가 채워져 있다 — 그것도 통과시켜야 함
         const delta = choice?.delta?.content ?? ''
         const toolCalls = choice?.delta?.tool_calls?.map((tc) => ({
+          index: tc.index,
           id: tc.id ?? '',
           name: tc.function?.name ?? '',
           arguments: tc.function?.arguments ?? '',

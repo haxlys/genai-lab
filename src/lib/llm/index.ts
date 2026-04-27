@@ -39,13 +39,29 @@ export async function streamChat(
   let output = ''
   let usage = { prompt_tokens: 0, completion_tokens: 0, total_tokens: 0 }
   let model = request.model
-  const toolCalls: NonNullable<ChatResponseChunk['tool_calls']> = []
+  // streaming tool_calls는 index별로 fragments가 쪼개져서 옴 — index를 키로 누적
+  const callsByIndex: Map<number, { id: string; name: string; arguments: string }> = new Map()
 
   const onChunk = (chunk: ChatResponseChunk) => {
     if (chunk.delta) output += chunk.delta
     if (chunk.usage) usage = chunk.usage
     if (chunk.model) model = chunk.model
-    if (chunk.tool_calls) toolCalls.push(...chunk.tool_calls)
+    if (chunk.tool_calls) {
+      for (const tc of chunk.tool_calls) {
+        const existing = callsByIndex.get(tc.index)
+        if (existing) {
+          if (tc.id && !existing.id) existing.id = tc.id
+          if (tc.name && !existing.name) existing.name = tc.name
+          existing.arguments += tc.arguments
+        } else {
+          callsByIndex.set(tc.index, {
+            id: tc.id,
+            name: tc.name,
+            arguments: tc.arguments,
+          })
+        }
+      }
+    }
     options.onChunk(chunk)
   }
 
@@ -62,6 +78,11 @@ export async function streamChat(
     case 'huggingface':
       throw new Error(`'${request.provider}' provider는 아직 구현되지 않았습니다 (MVP는 github-models만).`)
   }
+
+  // index 순으로 정렬해 최종 toolCalls 배열 (동일 호출의 fragments는 모두 누적됨)
+  const toolCalls = [...callsByIndex.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, v]) => v)
 
   const latencyMs = Math.round(performance.now() - start)
   return {
@@ -282,7 +303,9 @@ export async function runAgent(
 
   for (let i = 0; i < request.maxIterations; i++) {
     let textChunks = ''
-    const toolCalls: AgentStep['toolCalls'] = []
+    // streaming 동안 index별로 누적 — id/name은 첫 청크에만 있고 arguments는 fragmented
+    const callsByIndex: Map<number, { id: string; name: string; arguments: string }> = new Map()
+
     await githubModels.streamChatCompletion(
       {
         provider: 'github-models',
@@ -299,13 +322,17 @@ export async function runAgent(
           if (chunk.delta) textChunks += chunk.delta
           if (chunk.tool_calls) {
             for (const tc of chunk.tool_calls) {
-              const existing = toolCalls.find((x) => x.id === tc.id)
+              const existing = callsByIndex.get(tc.index)
               if (existing) {
-                // accumulate streamed argument fragments
-                existing.arguments += tc.arguments
+                if (tc.id && !existing.id) existing.id = tc.id
                 if (tc.name && !existing.name) existing.name = tc.name
+                existing.arguments += tc.arguments
               } else {
-                toolCalls.push({ id: tc.id, name: tc.name, arguments: tc.arguments })
+                callsByIndex.set(tc.index, {
+                  id: tc.id,
+                  name: tc.name,
+                  arguments: tc.arguments,
+                })
               }
             }
           }
@@ -313,6 +340,11 @@ export async function runAgent(
         },
       },
     )
+
+    // index 순으로 정렬해서 toolCalls 배열로 변환
+    const toolCalls: AgentStep['toolCalls'] = [...callsByIndex.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([, v]) => v)
 
     // 도구 호출이 없으면 최종 답변
     if (toolCalls.length === 0) {
@@ -357,10 +389,17 @@ export async function runAgent(
       toolResults,
     })
 
-    // assistant 메시지 + tool 메시지를 history에 추가
+    // assistant 메시지에 tool_calls를 함께 실어야 — 그래야 다음 'tool' role 메시지가
+    // OpenAI/GitHub Models의 검증을 통과 ("messages with role 'tool' must be a response
+    // to a preceding message with tool_calls").
     messages.push({
       role: 'assistant',
       content: textChunks,
+      tool_calls: toolCalls.map((tc) => ({
+        id: tc.id,
+        type: 'function' as const,
+        function: { name: tc.name, arguments: tc.arguments },
+      })),
     })
     messages.push(...toolMessages)
   }

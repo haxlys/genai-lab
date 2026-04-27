@@ -5,6 +5,15 @@ export type ChatMessage = {
   content: string
   name?: string
   tool_call_id?: string
+  /**
+   * assistant 메시지가 도구 호출을 했을 때 그 호출 정보를 같이 실어 보내야
+   * 후속 'tool' role 메시지가 OpenAI/GitHub Models 검증을 통과한다.
+   */
+  tool_calls?: Array<{
+    id: string
+    type: 'function'
+    function: { name: string; arguments: string }
+  }>
 }
 
 export type ToolDefinition = {
@@ -42,8 +51,13 @@ export type ChatResponseChunk = {
   }
   /** Model echoed back from the server (some providers normalize). */
   model?: string
-  /** Function/tool call info if the model invoked a tool. */
+  /**
+   * Function/tool call info if the model invoked a tool.
+   * Streaming 시 한 호출이 여러 청크로 쪼개져 옴 — `index`가 동일하면 같은 호출.
+   * `id`/`name`은 첫 청크에만, `arguments`는 fragmented 누적 필요.
+   */
   tool_calls?: Array<{
+    index: number
     id: string
     name: string
     arguments: string
