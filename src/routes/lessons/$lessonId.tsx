@@ -1,6 +1,13 @@
 import { createFileRoute, notFound } from '@tanstack/react-router'
+
 import { Badge } from '#/components/ui/badge'
+import { LessonContent } from '#/components/lesson/LessonContent'
+import { LessonCode } from '#/components/lesson/LessonCode'
+import { SplitPane } from '#/components/lesson/SplitPane'
+import { RunPanel } from '#/components/lesson/RunPanel'
+
 import { getLesson, getLessonSummary } from '#/lib/content'
+import { getLessonSpec } from '#/lib/lesson-specs'
 
 export const Route = createFileRoute('/lessons/$lessonId')({
   component: LessonPage,
@@ -15,37 +22,55 @@ export const Route = createFileRoute('/lessons/$lessonId')({
 
 function LessonPage() {
   const { lesson } = Route.useLoaderData()
+  const spec = getLessonSpec(lesson.id)
 
   return (
-    <div className="container mx-auto max-w-6xl px-6 py-8">
+    <div className="container mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Badge variant="outline" className="font-mono">
             {String(lesson.number).padStart(2, '0')}
           </Badge>
-          <Badge>{lesson.type}</Badge>
-          {lesson.weekRecommended && <Badge variant="secondary">{lesson.weekRecommended}주차</Badge>}
+          <Badge variant={lesson.type === 'Build' ? 'default' : 'secondary'}>{lesson.type}</Badge>
+          {lesson.weekRecommended && (
+            <Badge variant="secondary">{lesson.weekRecommended}주차</Badge>
+          )}
         </div>
-        <h1 className="mt-3 text-3xl font-bold">{lesson.title}</h1>
+        <h1 className="mt-3 text-3xl font-bold leading-tight">{lesson.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{lesson.titleEn}</p>
       </header>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <article className="prose prose-sm max-w-none dark:prose-invert">
-          <p className="text-muted-foreground">
-            본 레슨의 한국어 마크다운 본문(<code>{lesson.contentMarkdown.length}자</code>) 렌더링은
-            Phase 2에서 react-markdown으로 구현됩니다. 우측 인터랙티브 패널도 Phase 2에서 추가됩니다.
-          </p>
-        </article>
-        <aside className="rounded-lg border bg-card p-6">
-          <h2 className="mb-2 text-lg font-semibold">인터랙티브 패널</h2>
-          <p className="text-sm text-muted-foreground">
-            {lesson.hasVariableSpec
-              ? '레슨별 변수 폼이 여기에 표시됩니다.'
-              : '이 레슨은 개념 학습용입니다. Playground에서 자유 실험을 하거나 다음 레슨으로 넘어가세요.'}
-          </p>
-        </aside>
-      </div>
+      <SplitPane
+        left={
+          <div className="space-y-6">
+            <LessonCode
+              pythonReference={lesson.pythonReference}
+              typescriptReference={lesson.typescriptReference}
+              typescriptSnippet={spec?.typescriptSnippet}
+            />
+            <LessonContent markdown={lesson.contentMarkdown} />
+          </div>
+        }
+        right={
+          <div className="rounded-lg border bg-card p-5">
+            <h2 className="mb-1 text-base font-semibold">인터랙티브 랩</h2>
+            <p className="mb-5 text-xs text-muted-foreground">
+              변수를 조정하고 Run을 누르면 LLM이 실시간으로 응답합니다. 결과는 자동으로 history에 저장됩니다.
+            </p>
+            {spec ? (
+              <RunPanel spec={spec} lessonId={lesson.id} />
+            ) : (
+              <div className="rounded-md bg-muted p-4 text-sm">
+                <p className="font-medium">이 레슨은 개념 학습용입니다.</p>
+                <p className="mt-2 text-muted-foreground">
+                  자유 실험은 <a href="/playground" className="underline">Playground</a>에서 진행하거나
+                  Build 레슨(06, 07, 09, 11, 15 등)으로 이동하세요.
+                </p>
+              </div>
+            )}
+          </div>
+        }
+      />
     </div>
   )
 }

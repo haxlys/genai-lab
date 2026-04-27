@@ -67,7 +67,7 @@
     "type": "Build",
     "weekRecommended": 1,
     "apiCallType": "chat",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "07-building-chat-applications",

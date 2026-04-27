@@ -3,6 +3,8 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { AppHeader } from '#/components/shared/AppHeader'
+import { EnvBootstrap } from '#/components/shared/EnvBootstrap'
+import { Toaster } from '#/components/ui/sonner'
 import appCss from '../styles.css?url'
 
 export const Route = createRootRoute({
@@ -38,6 +40,8 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       <body>
         <AppHeader />
         <main>{children}</main>
+        <EnvBootstrap />
+        <Toaster richColors closeButton />
         <TanStackDevtools
           config={{
             position: 'bottom-right',
