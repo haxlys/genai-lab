@@ -1,0 +1,222 @@
+[
+  {
+    "id": "00-course-setup",
+    "number": 0,
+    "title": "환경 설정",
+    "titleEn": "Course Setup",
+    "type": "Setup",
+    "weekRecommended": null,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "01-introduction-to-genai",
+    "number": 1,
+    "title": "생성형 AI와 LLM 입문",
+    "titleEn": "Introduction to Generative AI and LLMs",
+    "type": "Learn",
+    "weekRecommended": 1,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "02-exploring-and-comparing-different-llms",
+    "number": 2,
+    "title": "다양한 LLM 탐색과 비교",
+    "titleEn": "Exploring and Comparing Different LLMs",
+    "type": "Learn",
+    "weekRecommended": null,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "03-using-generative-ai-responsibly",
+    "number": 3,
+    "title": "책임 있는 생성형 AI 사용",
+    "titleEn": "Using Generative AI Responsibly",
+    "type": "Learn",
+    "weekRecommended": 4,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "04-prompt-engineering-fundamentals",
+    "number": 4,
+    "title": "프롬프트 엔지니어링 기초",
+    "titleEn": "Prompt Engineering Fundamentals",
+    "type": "Learn",
+    "weekRecommended": 1,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "05-advanced-prompts",
+    "number": 5,
+    "title": "고급 프롬프트 (Chain-of-Thought)",
+    "titleEn": "Creating Advanced Prompts",
+    "type": "Learn",
+    "weekRecommended": 1,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "06-text-generation-apps",
+    "number": 6,
+    "title": "텍스트 생성 앱 만들기",
+    "titleEn": "Building Text Generation Applications",
+    "type": "Build",
+    "weekRecommended": 1,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "07-building-chat-applications",
+    "number": 7,
+    "title": "챗 애플리케이션 만들기",
+    "titleEn": "Building Chat Applications",
+    "type": "Build",
+    "weekRecommended": 2,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "08-building-search-applications",
+    "number": 8,
+    "title": "시맨틱 검색 앱 만들기",
+    "titleEn": "Building Search Applications",
+    "type": "Build",
+    "weekRecommended": 3,
+    "apiCallType": "embedding",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "09-building-image-applications",
+    "number": 9,
+    "title": "이미지 생성 앱 만들기",
+    "titleEn": "Building Image Generation Applications",
+    "type": "Build",
+    "weekRecommended": 2,
+    "apiCallType": "image",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "10-building-low-code-ai-applications",
+    "number": 10,
+    "title": "로우코드 AI 앱",
+    "titleEn": "Building Low Code AI Applications",
+    "type": "Build",
+    "weekRecommended": null,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "11-integrating-with-function-calling",
+    "number": 11,
+    "title": "함수 호출(Function Calling) 통합",
+    "titleEn": "Integrating with Function Calling",
+    "type": "Build",
+    "weekRecommended": 2,
+    "apiCallType": "function-call",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "12-designing-ux-for-ai-applications",
+    "number": 12,
+    "title": "AI 앱 UX 설계",
+    "titleEn": "Designing UX for AI Applications",
+    "type": "Learn",
+    "weekRecommended": 2,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "13-securing-ai-applications",
+    "number": 13,
+    "title": "AI 앱 보안",
+    "titleEn": "Securing Your Generative AI Applications",
+    "type": "Learn",
+    "weekRecommended": 4,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "14-the-generative-ai-application-lifecycle",
+    "number": 14,
+    "title": "생성형 AI 앱 라이프사이클",
+    "titleEn": "The Generative AI Application Lifecycle",
+    "type": "Learn",
+    "weekRecommended": 4,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "15-rag-and-vector-databases",
+    "number": 15,
+    "title": "RAG와 벡터 데이터베이스",
+    "titleEn": "Retrieval Augmented Generation (RAG) and Vector Databases",
+    "type": "Build",
+    "weekRecommended": 3,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "16-open-source-models",
+    "number": 16,
+    "title": "오픈소스 모델",
+    "titleEn": "Open Source Models",
+    "type": "Build",
+    "weekRecommended": null,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "17-ai-agents",
+    "number": 17,
+    "title": "AI 에이전트",
+    "titleEn": "AI Agents",
+    "type": "Build",
+    "weekRecommended": 3,
+    "apiCallType": "function-call",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "18-fine-tuning",
+    "number": 18,
+    "title": "파인튜닝",
+    "titleEn": "Fine-tuning Your LLM",
+    "type": "Learn",
+    "weekRecommended": 4,
+    "apiCallType": "none",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "19-slm",
+    "number": 19,
+    "title": "SLM (소형 언어 모델)",
+    "titleEn": "Building with SLMs",
+    "type": "Learn",
+    "weekRecommended": null,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "20-mistral",
+    "number": 20,
+    "title": "Mistral 모델",
+    "titleEn": "Building with Mistral Models",
+    "type": "Learn",
+    "weekRecommended": null,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  },
+  {
+    "id": "21-meta",
+    "number": 21,
+    "title": "Meta 모델 (Llama)",
+    "titleEn": "Building with Meta Models",
+    "type": "Learn",
+    "weekRecommended": null,
+    "apiCallType": "chat",
+    "hasVariableSpec": false
+  }
+]
