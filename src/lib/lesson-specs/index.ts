@@ -6,9 +6,11 @@
  */
 
 import type { VariableSpec } from '#/types/lesson'
+import { lesson04Spec } from './04-prompt-engineering-fundamentals'
 import { lesson06Spec } from './06-text-generation-apps'
 
 const REGISTRY: Record<string, VariableSpec> = {
+  '04-prompt-engineering-fundamentals': lesson04Spec,
   '06-text-generation-apps': lesson06Spec,
 }
 

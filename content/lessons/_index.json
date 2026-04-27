@@ -47,7 +47,7 @@
     "type": "Learn",
     "weekRecommended": 1,
     "apiCallType": "chat",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "05-advanced-prompts",

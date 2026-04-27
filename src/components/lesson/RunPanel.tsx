@@ -1,5 +1,5 @@
-import { useCallback, useRef, useState } from 'react'
-import { Play, Square } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Play, Square, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '#/components/ui/button'
@@ -30,7 +30,15 @@ export function RunPanel({
 }) {
   const [values, setValues] = useState<Record<string, unknown>>(initialValues ?? {})
   const [state, setState] = useState<RunState>({ status: 'idle' })
+  const [restoreFromPreset, setRestoreFromPreset] = useState<Record<string, unknown> | undefined>(
+    initialValues,
+  )
   const abortRef = useRef<AbortController | null>(null)
+
+  // 외부에서 initialValues가 바뀌면(history 복원 등) 폼 리셋용 state도 함께 갱신
+  useEffect(() => {
+    if (initialValues) setRestoreFromPreset(initialValues)
+  }, [initialValues])
 
   const handleRun = useCallback(async () => {
     // 이미 실행 중이면 중단
@@ -119,7 +127,32 @@ export function RunPanel({
 
   return (
     <div className="space-y-4">
-      <VariableForm spec={spec} initialValues={initialValues} onChange={setValues} />
+      {spec.presets && spec.presets.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Wand2 className="h-3.5 w-3.5" />
+            빠른 시작 프리셋
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {spec.presets.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => setRestoreFromPreset({ ...preset.values })}
+                className="rounded-md border bg-card p-2.5 text-left text-xs transition-colors hover:bg-accent"
+              >
+                <div className="font-medium text-foreground">{preset.label}</div>
+                {preset.description && (
+                  <div className="mt-0.5 text-muted-foreground">{preset.description}</div>
+                )}
+              </button>
+            ))}
+          </div>
+          <Separator className="!my-3" />
+        </div>
+      )}
+
+      <VariableForm spec={spec} initialValues={restoreFromPreset} onChange={setValues} />
 
       <Separator />
 

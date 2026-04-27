@@ -104,24 +104,80 @@ async function readKoreanReadme(lessonId: string): Promise<string> {
   return ''
 }
 
-// ---- Python 코드 우선순위 (githubmodels > oai > aoai > 첫 .py) ----
+/**
+ * Jupyter notebook(.ipynb)에서 Python 코드 셀들을 추출해 단일 .py 표현으로 결합.
+ * 마크다운 셀은 # 주석 블록으로 변환해 학습 흐름을 유지.
+ */
+function notebookToPython(raw: string): string {
+  let nb: { cells: Array<{ cell_type: string; source: string | string[] }> }
+  try {
+    nb = JSON.parse(raw)
+  } catch {
+    return ''
+  }
+  const out: string[] = []
+  for (const cell of nb.cells ?? []) {
+    const src = Array.isArray(cell.source) ? cell.source.join('') : cell.source
+    if (!src) continue
+    if (cell.cell_type === 'markdown') {
+      // 마크다운 셀 → # 주석 블록 (학습용 컨텍스트 유지)
+      const commented = src
+        .split('\n')
+        .map((l) => `# ${l}`)
+        .join('\n')
+      out.push(`# ── markdown ──────────────────────────────\n${commented}\n`)
+    } else if (cell.cell_type === 'code') {
+      out.push(src.replace(/\n+$/, '') + '\n')
+    }
+  }
+  return out.join('\n')
+}
+
+// ---- Python 코드 우선순위: .py 먼저, 없으면 .ipynb 결합 ----
 async function readPythonReference(lessonId: string): Promise<string | null> {
   const pythonDir = join(SOURCE_REPO, lessonId, 'python')
   if (!existsSync(pythonDir)) return null
 
   const files = await readdir(pythonDir)
   const pyFiles = files.filter((f) => f.endsWith('.py'))
-  if (pyFiles.length === 0) return null
+  const nbFiles = files.filter((f) => f.endsWith('.ipynb'))
 
-  const priorities = ['githubmodels-app.py', 'oai-app.py', 'aoai-app.py']
-  for (const name of priorities) {
-    if (pyFiles.includes(name)) {
-      return await readFile(join(pythonDir, name), 'utf-8')
+  // 1) .py가 있으면 우선순위로 선택
+  if (pyFiles.length > 0) {
+    const priorities = ['githubmodels-app.py', 'oai-app.py', 'aoai-app.py']
+    for (const name of priorities) {
+      if (pyFiles.includes(name)) {
+        return await readFile(join(pythonDir, name), 'utf-8')
+      }
     }
+    pyFiles.sort()
+    return await readFile(join(pythonDir, pyFiles[0]), 'utf-8')
   }
-  // priority 매칭 없으면 알파벳순 첫 .py
-  pyFiles.sort()
-  return await readFile(join(pythonDir, pyFiles[0]), 'utf-8')
+
+  // 2) .py가 없으면 .ipynb를 파싱해서 코드 셀 결합
+  if (nbFiles.length > 0) {
+    const priorities = [
+      'githubmodels-assignment.ipynb',
+      'githubmodels-assignment-simple.ipynb',
+      'oai-assignment.ipynb',
+      'aoai-assignment.ipynb',
+    ]
+    let chosen: string | undefined
+    for (const name of priorities) {
+      if (nbFiles.includes(name)) {
+        chosen = name
+        break
+      }
+    }
+    if (!chosen) {
+      nbFiles.sort()
+      chosen = nbFiles[0]
+    }
+    const raw = await readFile(join(pythonDir, chosen), 'utf-8')
+    return notebookToPython(raw)
+  }
+
+  return null
 }
 
 // ---- TypeScript 코드 (있으면 첫 main.ts/index.ts) ----
