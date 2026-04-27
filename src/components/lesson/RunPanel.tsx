@@ -75,9 +75,21 @@ export function RunPanel({
         },
       })
 
+      // tool_calls(function calling)가 있으면 출력에 함께 표시
+      const toolCallSection = result.toolCalls?.length
+        ? `\n\n──── Tool calls (${result.toolCalls.length}) ────\n` +
+          result.toolCalls
+            .map(
+              (tc, i) =>
+                `[${i + 1}] ${tc.name}\n  args: ${tc.arguments}`,
+            )
+            .join('\n')
+        : ''
+      const finalOutput = result.output + toolCallSection
+
       setState({
         status: 'success',
-        output: result.output,
+        output: finalOutput,
         latencyMs: result.latencyMs,
         promptTokens: result.usage.prompt_tokens,
         completionTokens: result.usage.completion_tokens,
@@ -88,7 +100,7 @@ export function RunPanel({
       saveRun({
         lessonId,
         inputs: values,
-        output: result.output,
+        output: finalOutput,
         metadata: {
           provider: request.provider,
           model: result.model,
