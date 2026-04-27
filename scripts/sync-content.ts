@@ -76,16 +76,29 @@ async function hasLessonSpec(lessonId: string): Promise<boolean> {
   }
 }
 
+/**
+ * 마크다운 cleanup:
+ * 1. HTML 주석 제거 (<!-- ... -->) — 원본에 LESSON TEMPLATE / CO-OP TRANSLATOR
+ *    DISCLAIMER START/END 같은 편집용 메타가 그대로 노출됨. 학습자에게 무가치.
+ * 2. 연속 빈 줄을 1개로 압축.
+ */
+function cleanupMarkdown(raw: string): string {
+  return raw
+    .replace(/<!--[\s\S]*?-->/g, '')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
+
 // ---- 한국어 본문 읽기 (없으면 영문 원본 README로 폴백) ----
 async function readKoreanReadme(lessonId: string): Promise<string> {
   const koPath = join(SOURCE_REPO, 'translations', 'ko', lessonId, 'README.md')
   if (existsSync(koPath)) {
-    return await readFile(koPath, 'utf-8')
+    return cleanupMarkdown(await readFile(koPath, 'utf-8'))
   }
   const enPath = join(SOURCE_REPO, lessonId, 'README.md')
   if (existsSync(enPath)) {
     console.warn(`  ⚠ ${lessonId}: 한국어 번역 없음, 영문 원본 사용`)
-    return await readFile(enPath, 'utf-8')
+    return cleanupMarkdown(await readFile(enPath, 'utf-8'))
   }
   console.warn(`  ⚠ ${lessonId}: README.md 없음`)
   return ''
