@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { Check, Copy } from 'lucide-react'
 
 type SupportedLang = 'python' | 'typescript' | 'javascript' | 'plaintext'
 
@@ -28,6 +29,7 @@ async function getHighlighter() {
 
 export function CodeBlock({ code, lang }: { code: string; lang: SupportedLang }) {
   const [html, setHtml] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     let mounted = true
@@ -53,6 +55,16 @@ export function CodeBlock({ code, lang }: { code: string; lang: SupportedLang })
     }
   }, [code, lang])
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch (err) {
+      console.warn('clipboard write failed:', err)
+    }
+  }
+
   if (html === null) {
     return (
       <pre className="overflow-auto rounded-md bg-muted p-4 text-xs">
@@ -62,10 +74,20 @@ export function CodeBlock({ code, lang }: { code: string; lang: SupportedLang })
   }
 
   return (
-    <div
-      className="shiki-block overflow-auto rounded-md text-xs [&_pre]:!m-0 [&_pre]:!bg-muted [&_pre]:!p-4"
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={handleCopy}
+        className="absolute right-2 top-2 z-10 rounded-md border bg-background/80 p-1.5 text-muted-foreground opacity-0 backdrop-blur transition-opacity hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100"
+        aria-label={copied ? '복사됨' : '코드 복사'}
+      >
+        {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+      <div
+        className="shiki-block overflow-auto rounded-md text-xs [&_pre]:!m-0 [&_pre]:!bg-muted [&_pre]:!p-4"
+        dangerouslySetInnerHTML={{ __html: html }}
+      />
+    </div>
   )
 }
 
