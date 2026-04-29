@@ -7,6 +7,7 @@
 
 import { createParser, type EventSourceMessage } from 'eventsource-parser'
 import type { ChatRequest, ChatResponseChunk } from '#/types/llm'
+import { LlmHttpError, buildErrorMessage } from './error-messages'
 
 const GITHUB_MODELS_ENDPOINT = 'https://models.inference.ai.azure.com/chat/completions'
 
@@ -48,8 +49,8 @@ export async function streamChatCompletion(
 
   if (!response.ok) {
     const text = await safeText(response)
-    throw new Error(
-      `GitHub Models ${response.status}: ${response.statusText}\n${text.slice(0, 500)}`,
+    throw new LlmHttpError(
+      buildErrorMessage('github-models', response.status, text, response.statusText),
     )
   }
   if (!response.body) {
@@ -129,7 +130,9 @@ export async function chatCompletion(
   })
   if (!response.ok) {
     const text = await safeText(response)
-    throw new Error(`GitHub Models ${response.status}: ${response.statusText}\n${text.slice(0, 500)}`)
+    throw new LlmHttpError(
+      buildErrorMessage('github-models', response.status, text, response.statusText),
+    )
   }
   const json = (await response.json()) as OpenAiCompletionsResponse
   const choice = json.choices?.[0]

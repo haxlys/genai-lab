@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { useEffect, useState } from 'react'
-import { Eye, EyeOff, Save } from 'lucide-react'
+import { Check, Eye, EyeOff, Loader2, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge'
@@ -11,8 +11,28 @@ import { Separator } from '#/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
 
 import { type ApiKeyMap, getSettings, updateSettings } from '#/lib/storage/settings'
+import {
+  validateGitHubModels,
+  validateHuggingFace,
+  validateOpenAi,
+  type ValidateResult,
+} from '#/lib/llm/validate-key'
 
 export const Route = createFileRoute('/settings')({ component: Settings })
+
+type ValidatableField = 'githubModels' | 'openai' | 'huggingface'
+
+const VALIDATORS: Record<ValidatableField, (key: string) => Promise<ValidateResult>> = {
+  githubModels: validateGitHubModels,
+  openai: validateOpenAi,
+  huggingface: validateHuggingFace,
+}
+
+type ValidationState =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'ok'; message?: string }
+  | { status: 'fail'; message: string; raw?: string }
 
 const KEY_FIELDS: Array<{
   name: keyof ApiKeyMap
@@ -65,6 +85,25 @@ function Settings() {
   const [settings, setSettings] = useState(getSettings)
   const [revealed, setRevealed] = useState<Record<string, boolean>>({})
   const [dirty, setDirty] = useState<Partial<ApiKeyMap>>({})
+  const [validation, setValidation] = useState<Record<string, ValidationState>>({})
+
+  const handleValidate = async (name: ValidatableField) => {
+    const key = (dirty[name] ?? settings.apiKeys[name]) as string
+    if (!key) {
+      setValidation((p) => ({ ...p, [name]: { status: 'fail', message: 'API 키가 비어 있습니다.' } }))
+      return
+    }
+    setValidation((p) => ({ ...p, [name]: { status: 'loading' } }))
+    const result = await VALIDATORS[name](key)
+    if (result.ok) {
+      setValidation((p) => ({ ...p, [name]: { status: 'ok', message: result.message } }))
+    } else {
+      setValidation((p) => ({
+        ...p,
+        [name]: { status: 'fail', message: result.message, raw: result.raw },
+      }))
+    }
+  }
 
   // localStorage 변경 사항을 감지 (EnvBootstrap이 비동기로 채우므로)
   useEffect(() => {
@@ -120,6 +159,8 @@ function Settings() {
             const current = dirty[field.name] ?? settings.apiKeys[field.name]
             const injected = settings.envInjected[field.name]
             const isRevealed = revealed[field.name] === true
+            const validatable = field.name in VALIDATORS
+            const v = validation[field.name] ?? { status: 'idle' as const }
             return (
               <div key={field.name} className="space-y-1.5">
                 <div className="flex items-center justify-between">
@@ -147,15 +188,57 @@ function Settings() {
                     {isRevealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
-                <Input
-                  id={`key-${field.name}`}
-                  type={isRevealed ? 'text' : 'password'}
-                  value={current}
-                  placeholder={field.placeholder}
-                  onChange={(e) => handleChange(field.name, e.target.value)}
-                  className="font-mono text-xs"
-                  autoComplete="off"
-                />
+                <div className="flex items-stretch gap-2">
+                  <Input
+                    id={`key-${field.name}`}
+                    type={isRevealed ? 'text' : 'password'}
+                    value={current}
+                    placeholder={field.placeholder}
+                    onChange={(e) => handleChange(field.name, e.target.value)}
+                    className="font-mono text-xs"
+                    autoComplete="off"
+                  />
+                  {validatable && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      type="button"
+                      onClick={() => handleValidate(field.name as ValidatableField)}
+                      disabled={!current || v.status === 'loading'}
+                      aria-label="검증"
+                    >
+                      {v.status === 'loading' ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : v.status === 'ok' ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      ) : v.status === 'fail' ? (
+                        <X className="h-3.5 w-3.5 text-destructive" />
+                      ) : (
+                        <span className="text-xs">검증</span>
+                      )}
+                    </Button>
+                  )}
+                </div>
+                {v.status === 'ok' && (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    ✓ {v.message ?? '키가 유효합니다.'}
+                  </p>
+                )}
+                {v.status === 'fail' && (
+                  <div className="space-y-1">
+                    <p className="text-xs text-destructive">{v.message}</p>
+                    {v.raw && (
+                      <details className="text-xs">
+                        <summary className="cursor-pointer text-muted-foreground">
+                          raw 응답 보기
+                        </summary>
+                        <pre className="mt-1 whitespace-pre-wrap break-words rounded bg-muted/50 p-2 font-mono text-[11px] text-muted-foreground">
+                          {v.raw}
+                        </pre>
+                      </details>
+                    )}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground">{field.description}</p>
               </div>
             )
