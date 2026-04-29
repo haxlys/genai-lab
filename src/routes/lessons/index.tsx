@@ -1,7 +1,11 @@
+import { useEffect, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { Check } from 'lucide-react'
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
 import { Badge } from '#/components/ui/badge'
 import { getLessonSummaries } from '#/lib/content'
+import { getVisited } from '#/lib/storage/progress'
 import type { LessonSummary } from '#/types/lesson'
 
 export const Route = createFileRoute('/lessons/')({
@@ -17,6 +21,11 @@ const TYPE_BADGE_VARIANT: Record<LessonSummary['type'], 'default' | 'secondary' 
 
 function LessonsIndex() {
   const { summaries } = Route.useLoaderData()
+  const [visited, setVisited] = useState<Set<string>>(() => new Set())
+
+  useEffect(() => {
+    setVisited(getVisited())
+  }, [])
 
   // 주차별 그룹화 (null인 옵션 레슨은 별도)
   const byWeek: Record<string, LessonSummary[]> = {
@@ -31,10 +40,17 @@ function LessonsIndex() {
     byWeek[key].push(s)
   }
 
+  const visitedCount = summaries.filter((s) => visited.has(s.id)).length
+
   return (
     <div className="container mx-auto max-w-6xl px-6 py-12">
       <header className="mb-10">
-        <h1 className="text-3xl font-bold">레슨 목록</h1>
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-3xl font-bold">레슨 목록</h1>
+          <div className="text-sm text-muted-foreground">
+            진도 <span className="font-mono">{visitedCount}/{summaries.length}</span>
+          </div>
+        </div>
         <p className="mt-2 text-muted-foreground">
           22개 레슨을 권장 학습 주차별로 정렬했습니다. 진도와 무관하게 어떤 레슨부터든 시작할 수 있습니다.
         </p>
@@ -48,7 +64,7 @@ function LessonsIndex() {
               {lessons
                 .sort((a, b) => a.number - b.number)
                 .map((lesson) => (
-                  <LessonCard key={lesson.id} lesson={lesson} />
+                  <LessonCard key={lesson.id} lesson={lesson} visited={visited.has(lesson.id)} />
                 ))}
             </div>
           </section>
@@ -58,7 +74,7 @@ function LessonsIndex() {
   )
 }
 
-function LessonCard({ lesson }: { lesson: LessonSummary }) {
+function LessonCard({ lesson, visited }: { lesson: LessonSummary; visited: boolean }) {
   return (
     <Link
       to="/lessons/$lessonId"
@@ -72,6 +88,15 @@ function LessonCard({ lesson }: { lesson: LessonSummary }) {
               {String(lesson.number).padStart(2, '0')}
             </Badge>
             <div className="flex gap-1">
+              {visited && (
+                <Badge
+                  variant="secondary"
+                  className="bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400"
+                  aria-label="방문함"
+                >
+                  <Check className="h-3 w-3" />
+                </Badge>
+              )}
               <Badge variant={TYPE_BADGE_VARIANT[lesson.type]}>{lesson.type}</Badge>
               {lesson.hasVariableSpec && <Badge variant="secondary">랩</Badge>}
             </div>
