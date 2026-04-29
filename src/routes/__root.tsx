@@ -4,6 +4,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { AppHeader } from '#/components/shared/AppHeader'
 import { EnvBootstrap } from '#/components/shared/EnvBootstrap'
+import { ThemeProvider } from '#/components/shared/ThemeProvider'
 import { Toaster } from '#/components/ui/sonner'
 import appCss from '../styles.css?url'
 
@@ -33,26 +34,28 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        <AppHeader />
-        <main>{children}</main>
-        <EnvBootstrap />
-        <Toaster richColors closeButton />
-        <TanStackDevtools
-          config={{
-            position: 'bottom-right',
-          }}
-          plugins={[
-            {
-              name: 'Tanstack Router',
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <AppHeader />
+          <main>{children}</main>
+          <EnvBootstrap />
+          <Toaster richColors closeButton />
+          <TanStackDevtools
+            config={{
+              position: 'bottom-right',
+            }}
+            plugins={[
+              {
+                name: 'Tanstack Router',
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+            ]}
+          />
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>
