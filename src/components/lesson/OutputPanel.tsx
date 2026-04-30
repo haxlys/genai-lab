@@ -49,7 +49,7 @@ export type RunState =
       latencyMs: number
       model: string
     }
-  | { status: 'error'; message: string }
+  | { status: 'error'; message: string; raw?: string }
 
 export function OutputPanel({ state }: { state: RunState }) {
   return (
@@ -112,9 +112,17 @@ export function OutputPanel({ state }: { state: RunState }) {
             <div className="flex items-center gap-2 font-medium">
               <AlertCircle className="h-4 w-4" /> 오류
             </div>
-            <pre className="whitespace-pre-wrap break-words rounded bg-destructive/10 p-3 font-mono text-xs">
-              {state.message}
-            </pre>
+            <p className="rounded bg-destructive/10 p-3 leading-relaxed">{state.message}</p>
+            {state.raw && (
+              <details className="rounded border bg-muted/30 px-3 py-1.5 text-xs">
+                <summary className="cursor-pointer text-muted-foreground">
+                  raw 응답 보기 (디버깅용)
+                </summary>
+                <pre className="mt-2 whitespace-pre-wrap break-words font-mono text-[11px] text-muted-foreground">
+                  {state.raw}
+                </pre>
+              </details>
+            )}
           </div>
         )}
       </div>
