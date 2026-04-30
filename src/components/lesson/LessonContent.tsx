@@ -1,7 +1,9 @@
+import { Children } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CodeBlock } from './CodeBlock'
 import { resolveImageSrc } from '#/lib/image-src'
+import { slugify } from '#/lib/slug'
 
 type SupportedLang = 'python' | 'typescript' | 'javascript' | 'plaintext'
 
@@ -70,10 +72,46 @@ export function LessonContent({
               </a>
             )
           },
+          h2: ({ children, ...rest }) => <HeadingWithAnchor level={2} {...rest}>{children}</HeadingWithAnchor>,
+          h3: ({ children, ...rest }) => <HeadingWithAnchor level={3} {...rest}>{children}</HeadingWithAnchor>,
+          h4: ({ children, ...rest }) => <HeadingWithAnchor level={4} {...rest}>{children}</HeadingWithAnchor>,
         }}
       >
         {markdown}
       </ReactMarkdown>
     </article>
+  )
+}
+
+/**
+ * h2/h3/h4에 자동 id 생성 + hover 시 # 앵커 링크 표시.
+ * 한국어 헤딩도 안정적으로 슬러그화한다.
+ */
+function HeadingWithAnchor({
+  level,
+  children,
+}: {
+  level: 2 | 3 | 4
+  children: React.ReactNode
+}) {
+  const text = Children.toArray(children)
+    .map((c) => (typeof c === 'string' ? c : ''))
+    .join('')
+    .trim()
+  const id = text ? slugify(text) : undefined
+  const Tag = `h${level}` as 'h2' | 'h3' | 'h4'
+  return (
+    <Tag id={id} className="group scroll-mt-20">
+      {children}
+      {id && (
+        <a
+          href={`#${id}`}
+          aria-label={`${text} 섹션으로 가는 링크`}
+          className="ml-2 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+        >
+          #
+        </a>
+      )}
+    </Tag>
   )
 }
