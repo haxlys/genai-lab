@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { PlaygroundPanel } from '#/components/playground/PlaygroundPanel'
+import { ErrorBoundary } from '#/components/shared/ErrorBoundary'
 
 export const Route = createFileRoute('/playground')({ component: Playground })
 
@@ -12,7 +13,9 @@ function Playground() {
           레슨과 무관한 자유 실험실. 모델/프롬프트/파라미터를 자유롭게 조합하고 결과를 비교하세요.
         </p>
       </header>
-      <PlaygroundPanel />
+      <ErrorBoundary>
+        <PlaygroundPanel />
+      </ErrorBoundary>
     </div>
   )
 }

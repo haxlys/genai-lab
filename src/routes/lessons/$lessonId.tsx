@@ -3,6 +3,7 @@ import { createFileRoute, notFound } from '@tanstack/react-router'
 
 import { Badge } from '#/components/ui/badge'
 import { Separator } from '#/components/ui/separator'
+import { ErrorBoundary } from '#/components/shared/ErrorBoundary'
 import { LessonContent } from '#/components/lesson/LessonContent'
 import { LessonCode } from '#/components/lesson/LessonCode'
 import { LessonNavigation } from '#/components/lesson/LessonNavigation'
@@ -83,12 +84,14 @@ function LessonPage() {
                 변수를 조정하고 Run을 누르면 LLM이 실시간으로 응답합니다. 결과는 자동으로 history에 저장됩니다.
               </p>
               {spec ? (
-                <RunPanel
-                  spec={spec}
-                  lessonId={lesson.id}
-                  initialValues={restoreInputs}
-                  onRunComplete={refreshRuns}
-                />
+                <ErrorBoundary>
+                  <RunPanel
+                    spec={spec}
+                    lessonId={lesson.id}
+                    initialValues={restoreInputs}
+                    onRunComplete={refreshRuns}
+                  />
+                </ErrorBoundary>
               ) : (
                 <div className="rounded-md bg-muted p-4 text-sm">
                   <p className="font-medium">이 레슨은 개념 학습용입니다.</p>
@@ -102,16 +105,18 @@ function LessonPage() {
 
             {spec && (
               <div className="rounded-lg border bg-card p-5">
-                <RunHistoryList
-                  runs={runs}
-                  onRestore={(run) => {
-                    setRestoreInputs(run.inputs)
-                  }}
-                  onDelete={(id) => {
-                    deleteRun(id)
-                    refreshRuns()
-                  }}
-                />
+                <ErrorBoundary>
+                  <RunHistoryList
+                    runs={runs}
+                    onRestore={(run) => {
+                      setRestoreInputs(run.inputs)
+                    }}
+                    onDelete={(id) => {
+                      deleteRun(id)
+                      refreshRuns()
+                    }}
+                  />
+                </ErrorBoundary>
               </div>
             )}
           </div>
