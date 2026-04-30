@@ -4,6 +4,7 @@ import { TanStackDevtools } from '@tanstack/react-devtools'
 
 import { AppHeader } from '#/components/shared/AppHeader'
 import { EnvBootstrap } from '#/components/shared/EnvBootstrap'
+import { SearchCommand } from '#/components/shared/SearchCommand'
 import { Toaster } from '#/components/ui/sonner'
 import appCss from '../styles.css?url'
 
@@ -41,6 +42,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <AppHeader />
         <main>{children}</main>
         <EnvBootstrap />
+        <SearchCommand />
         <Toaster richColors closeButton />
         <TanStackDevtools
           config={{

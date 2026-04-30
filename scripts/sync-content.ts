@@ -105,6 +105,28 @@ async function readKoreanReadme(lessonId: string): Promise<string> {
 }
 
 /**
+ * 검색 인덱스용으로 마크다운에서 코드 펜스/이미지/링크/HTML을 제거하고 본문 텍스트만 남김.
+ */
+function stripMarkdown(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/^\s*#+\s+/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+type SearchEntry = {
+  id: string
+  number: number
+  title: string
+  titleEn: string
+  body: string
+}
+
+/**
  * Jupyter notebook(.ipynb)에서 Python 코드 셀들을 추출해 단일 .py 표현으로 결합.
  * 마크다운 셀은 # 주석 블록으로 변환해 학습 흐름을 유지.
  */
@@ -224,6 +246,7 @@ async function main() {
   await mkdir(OUTPUT_DIR, { recursive: true })
 
   let okCount = 0
+  const searchIndex: SearchEntry[] = []
   for (const meta of LESSONS) {
     process.stdout.write(`  • ${meta.id}: `)
     const lessonDir = join(SOURCE_REPO, meta.id)
@@ -254,6 +277,16 @@ async function main() {
       'utf-8',
     )
 
+    if (contentMarkdown) {
+      searchIndex.push({
+        id: meta.id,
+        number: meta.number,
+        title: meta.title,
+        titleEn: meta.titleEn,
+        body: stripMarkdown(contentMarkdown),
+      })
+    }
+
     const tags: string[] = []
     if (contentMarkdown) tags.push('md')
     if (pythonReference) tags.push('py')
@@ -262,6 +295,12 @@ async function main() {
     console.log(`✓ [${tags.join(',') || 'empty'}]`)
     okCount += 1
   }
+
+  await writeFile(
+    join(OUTPUT_DIR, '..', 'search-index.json'),
+    JSON.stringify(searchIndex),
+    'utf-8',
+  )
 
   // 인덱스 파일도 함께 작성
   const summaries = await Promise.all(
