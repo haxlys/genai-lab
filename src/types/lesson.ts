@@ -111,6 +111,12 @@ export type LessonContent = {
   typescriptReference: string | null
   /** Whether `lesson-specs/<id>.ts` exists (i.e. interactive panel available). */
   hasVariableSpec: boolean
+  /**
+   * 빌드 타임에 산출된 이미지 폴백 매핑. key는 markdown에서 참조된 원본 src
+   * (예: `../../../translated_images/ko/foo.webp`), value는 폴백 src
+   * (영문 원본 이미지로 대체된 경로). resolveImageSrc가 우선 적용한다.
+   */
+  imageMap?: Record<string, string>
 }
 
 /** Compact entry for the lessons grid — no full markdown body. */
