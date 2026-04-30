@@ -145,3 +145,21 @@ body {
     @apply font-sans;
   }
 }
+
+/*
+ * Shiki dual-theme: defaultColor=false로 출력된 결과의 --shiki-light/--shiki-dark
+ * CSS 변수를 .dark 클래스에 따라 수동 적용 (next-themes가 .dark 클래스를 토글).
+ *
+ * Shiki의 기본 동작은 prefers-color-scheme 미디어 쿼리지만, 사용자 수동 테마
+ * 토글과 어긋나서 다크 배경에 라이트 테마 색이 노출되어 가독성이 깨짐.
+ */
+.shiki,
+.shiki span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+.dark .shiki,
+.dark .shiki span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}

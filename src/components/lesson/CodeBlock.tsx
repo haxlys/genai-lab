@@ -13,8 +13,19 @@ import { Check, Copy } from 'lucide-react'
 
 type SupportedLang = 'python' | 'typescript' | 'javascript' | 'plaintext'
 
+type CodeToHtmlOptions = {
+  lang: string
+  themes: { light: string; dark: string }
+  /**
+   * false면 default color span을 만들지 않고 --shiki-light/--shiki-dark CSS 변수만
+   * 출력. 우리는 next-themes 의 .dark 클래스로 수동 토글하므로 prefers-color-scheme
+   * 기반 자동 전환이 어긋난다 — CSS 변수로 직접 제어.
+   */
+  defaultColor: false
+}
+
 let highlighterPromise: Promise<{
-  codeToHtml: (code: string, options: { lang: string; themes: { light: string; dark: string } }) => string
+  codeToHtml: (code: string, options: CodeToHtmlOptions) => string
 }> | null = null
 
 async function getHighlighter() {
@@ -60,6 +71,7 @@ export function CodeBlock({ code, lang }: { code: string; lang: SupportedLang })
         const out = highlighter.codeToHtml(code, {
           lang,
           themes: { light: 'github-light', dark: 'github-dark' },
+          defaultColor: false,
         })
         setHtml(out)
       })
@@ -101,7 +113,7 @@ export function CodeBlock({ code, lang }: { code: string; lang: SupportedLang })
         {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
       </button>
       <div
-        className="shiki-block overflow-auto rounded-md text-xs [&_pre]:!m-0 [&_pre]:!bg-muted [&_pre]:!p-4"
+        className="shiki-block overflow-auto rounded-md text-xs [&_pre]:!m-0 [&_pre]:!p-4"
         dangerouslySetInnerHTML={{ __html: html }}
       />
     </div>
