@@ -54,6 +54,18 @@ export function RunPanel({
 
     const request = spec.buildRequest(values)
     const settings = getSettings()
+    const kind = spec.kind ?? 'chat'
+
+    // chat 흐름은 settings.defaultProvider가 OpenAI-compatible(github-models/openai/azure)이면
+    // 그쪽으로 오버라이드해 사용자가 Settings에서 provider를 바꿔 사용 가능.
+    // image/embedding/rag/agent는 spec이 정한 provider를 그대로 (이미지는 OpenAI direct만 등)
+    if (kind === 'chat' && (request as { provider: string }).provider === 'github-models') {
+      const dp = settings.defaultProvider
+      if (dp === 'openai' || dp === 'azure') {
+        ;(request as { provider: string }).provider = dp
+      }
+    }
+
     const apiKey = getKeyForProvider(request.provider, settings)
 
     if (!apiKey) {
@@ -67,8 +79,6 @@ export function RunPanel({
     abortRef.current = new AbortController()
 
     try {
-      const kind = spec.kind ?? 'chat'
-
       if (kind === 'image') {
         const imageRequest = request as ImageRequest
         const result = await generateImage(imageRequest, {
