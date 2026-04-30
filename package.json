@@ -10,6 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
+    "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "sync-content": "tsx scripts/sync-content.ts",
     "smoke-test": "tsx scripts/smoke-test.ts"

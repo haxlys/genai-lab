@@ -65,7 +65,7 @@ function LessonPage() {
               typescriptReference={lesson.typescriptReference}
               typescriptSnippet={spec?.typescriptSnippet}
             />
-            <LessonContent markdown={lesson.contentMarkdown} />
+            <LessonContent markdown={lesson.contentMarkdown} imageMap={lesson.imageMap} />
           </div>
         }
         right={

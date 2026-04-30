@@ -105,6 +105,73 @@ async function readKoreanReadme(lessonId: string): Promise<string> {
 }
 
 /**
+ * 한국어 README의 마크다운에서 모든 이미지 src를 추출.
+ * `![alt](path)` + `[![alt](path)](url)` 형태 모두 포착.
+ */
+function extractImagePaths(markdown: string): string[] {
+  const paths: string[] = []
+  for (const m of markdown.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)) {
+    paths.push(m[1].split('?')[0])
+  }
+  return [...new Set(paths)]
+}
+
+/**
+ * 한국어 번역 이미지 누락 시 영문 원본으로 자동 폴백 매핑을 빌드.
+ *
+ * 한국어 README는 `../../../translated_images/ko/<base>.<hash>.<ext>` 형태로
+ * 이미지를 참조한다. 실제 파일이 source repo에 존재하지 않으면(번역 누락):
+ *  1) `<lesson-id>/images/<base>.<original-ext>` 영문 원본을 찾아 폴백
+ *  2) 어디에도 없으면 콘솔 경고
+ *
+ * 결과: { 원본 src → 폴백 src } 매핑. 모든 이미지가 정상이면 빈 객체.
+ */
+async function buildImageMap(
+  lessonId: string,
+  markdown: string,
+): Promise<{ map: Record<string, string>; missing: string[] }> {
+  const map: Record<string, string> = {}
+  const missing: string[] = []
+  const paths = extractImagePaths(markdown)
+
+  for (const original of paths) {
+    if (/^(https?:|data:|blob:)/.test(original)) continue
+
+    const stripped = original.replace(/^(\.\.\/)+/, '').replace(/^\.\//, '')
+    const absInSource = join(SOURCE_REPO, stripped)
+
+    if (existsSync(absInSource)) continue // OK as-is
+
+    // 폴백 1: translated_images/ko/<base>.<hash>.<ext> → <lesson-id>/images/<base>.*
+    const koMatch = stripped.match(/^translated_images\/ko\/(.+?)(\.[a-f0-9]{16})?\.(webp|png|jpg|jpeg|gif|svg)$/)
+    if (koMatch) {
+      const base = koMatch[1]
+      const lessonImagesDir = join(SOURCE_REPO, lessonId, 'images')
+      if (existsSync(lessonImagesDir)) {
+        const candidates = await readdir(lessonImagesDir)
+        const found = candidates.find(
+          (f) => f.toLowerCase().startsWith(base.toLowerCase() + '.'),
+        )
+        if (found) {
+          map[original] = `${lessonId}/images/${found}`
+          continue
+        }
+      }
+    }
+
+    // 폴백 2: translated_images/<lang>/... → 영문 원본 (lang 다른 경우 대비)
+    const otherLangMatch = stripped.match(/^translated_images\/[^/]+\/(.+)$/)
+    if (otherLangMatch) {
+      // 동일한 이름의 영문 원본을 찾기 어려움 — 마지막으로 콘솔 경고
+    }
+
+    missing.push(original)
+  }
+
+  return { map, missing }
+}
+
+/**
  * Jupyter notebook(.ipynb)에서 Python 코드 셀들을 추출해 단일 .py 표현으로 결합.
  * 마크다운 셀은 # 주석 블록으로 변환해 학습 흐름을 유지.
  */
@@ -224,6 +291,7 @@ async function main() {
   await mkdir(OUTPUT_DIR, { recursive: true })
 
   let okCount = 0
+  let totalMissingImages = 0
   for (const meta of LESSONS) {
     process.stdout.write(`  • ${meta.id}: `)
     const lessonDir = join(SOURCE_REPO, meta.id)
@@ -240,12 +308,16 @@ async function main() {
         hasLessonSpec(meta.id),
       ])
 
+    const { map: imageMap, missing } = await buildImageMap(meta.id, contentMarkdown)
+    totalMissingImages += missing.length
+
     const lesson = {
       ...meta,
       contentMarkdown,
       pythonReference,
       typescriptReference,
       hasVariableSpec,
+      ...(Object.keys(imageMap).length > 0 ? { imageMap } : {}),
     }
 
     await writeFile(
@@ -259,8 +331,16 @@ async function main() {
     if (pythonReference) tags.push('py')
     if (typescriptReference) tags.push('ts')
     if (hasVariableSpec) tags.push('spec')
+    if (Object.keys(imageMap).length > 0) tags.push(`fallback:${Object.keys(imageMap).length}`)
     console.log(`✓ [${tags.join(',') || 'empty'}]`)
+    if (missing.length > 0) {
+      console.warn(`    ⚠ 누락 이미지 ${missing.length}개 (폴백도 실패):`)
+      for (const m of missing) console.warn(`       - ${m}`)
+    }
     okCount += 1
+  }
+  if (totalMissingImages > 0) {
+    console.warn(`\n⚠ 전체 누락 이미지 ${totalMissingImages}개. 깨진 이미지로 노출됩니다.`)
   }
 
   // 인덱스 파일도 함께 작성
