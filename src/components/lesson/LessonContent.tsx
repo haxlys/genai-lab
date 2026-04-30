@@ -1,6 +1,9 @@
+import { Children } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CodeBlock } from './CodeBlock'
+import { resolveImageSrc } from '#/lib/image-src'
+import { slugify } from '#/lib/slug'
 
 type SupportedLang = 'python' | 'typescript' | 'javascript' | 'plaintext'
 
@@ -15,26 +18,18 @@ const NORMALIZED_LANGS: Record<string, SupportedLang> = {
   jsx: 'javascript',
 }
 
-const SOURCE_REPO_RAW_BASE =
-  'https://raw.githubusercontent.com/microsoft/generative-ai-for-beginners/main/'
-
-/**
- * 원본 레포의 한국어 README는 이미지를 ../../../translated_images/ko/foo.webp 식으로
- * 참조한다 (translations/ko/<id>/README.md 기준). 우리 페이지는 그 위치가 아니므로
- * 상대 경로를 GitHub raw URL로 다시 앵커링한다. 절대 URL은 그대로 둔다.
- */
-function resolveImageSrc(src: string | undefined): string | undefined {
-  if (!src) return src
-  if (/^(https?:|data:|blob:)/.test(src)) return src
-  const stripped = src.replace(/^(\.\.\/)+/, '').replace(/^\.\//, '')
-  return `${SOURCE_REPO_RAW_BASE}${stripped}`
-}
-
 /**
  * 한국어 마크다운 본문을 렌더링. 코드 펜스는 Shiki로 하이라이팅,
- * 이미지는 원본 레포의 상대 경로를 GitHub raw URL로 변환.
+ * 이미지는 원본 레포의 상대 경로를 GitHub raw URL로 변환. imageMap이
+ * 주어지면 폴백 매핑을 우선 적용한다 (한국어 번역 이미지 누락 대응).
  */
-export function LessonContent({ markdown }: { markdown: string }) {
+export function LessonContent({
+  markdown,
+  imageMap,
+}: {
+  markdown: string
+  imageMap?: Record<string, string>
+}) {
   return (
     <article className="prose prose-sm max-w-none dark:prose-invert prose-headings:scroll-mt-20 prose-img:rounded-md prose-img:border">
       <ReactMarkdown
@@ -57,7 +52,7 @@ export function LessonContent({ markdown }: { markdown: string }) {
           img({ src, alt }) {
             return (
               <img
-                src={resolveImageSrc(typeof src === 'string' ? src : undefined)}
+                src={resolveImageSrc(typeof src === 'string' ? src : undefined, imageMap)}
                 alt={alt ?? ''}
                 loading="lazy"
               />
@@ -77,10 +72,46 @@ export function LessonContent({ markdown }: { markdown: string }) {
               </a>
             )
           },
+          h2: ({ children, ...rest }) => <HeadingWithAnchor level={2} {...rest}>{children}</HeadingWithAnchor>,
+          h3: ({ children, ...rest }) => <HeadingWithAnchor level={3} {...rest}>{children}</HeadingWithAnchor>,
+          h4: ({ children, ...rest }) => <HeadingWithAnchor level={4} {...rest}>{children}</HeadingWithAnchor>,
         }}
       >
         {markdown}
       </ReactMarkdown>
     </article>
+  )
+}
+
+/**
+ * h2/h3/h4에 자동 id 생성 + hover 시 # 앵커 링크 표시.
+ * 한국어 헤딩도 안정적으로 슬러그화한다.
+ */
+function HeadingWithAnchor({
+  level,
+  children,
+}: {
+  level: 2 | 3 | 4
+  children: React.ReactNode
+}) {
+  const text = Children.toArray(children)
+    .map((c) => (typeof c === 'string' ? c : ''))
+    .join('')
+    .trim()
+  const id = text ? slugify(text) : undefined
+  const Tag = `h${level}` as 'h2' | 'h3' | 'h4'
+  return (
+    <Tag id={id} className="group scroll-mt-20">
+      {children}
+      {id && (
+        <a
+          href={`#${id}`}
+          aria-label={`${text} 섹션으로 가는 링크`}
+          className="ml-2 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+        >
+          #
+        </a>
+      )}
+    </Tag>
   )
 }

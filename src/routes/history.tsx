@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { GitCompare, Trash2 } from 'lucide-react'
+import { Download, GitCompare, Trash2, Upload } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Badge } from '#/components/ui/badge'
@@ -17,7 +17,13 @@ import {
 import { CompareDialog } from '#/components/lesson/CompareDialog'
 
 import { getLessonSummaries } from '#/lib/content'
-import { clearRuns, deleteRun, getRuns } from '#/lib/storage/runs'
+import {
+  clearRuns,
+  deleteRun,
+  exportRunsAsJson,
+  getRuns,
+  importRunsFromJson,
+} from '#/lib/storage/runs'
 import type { Run } from '#/types/run'
 
 export const Route = createFileRoute('/history')({
@@ -31,6 +37,7 @@ function History() {
   const [filter, setFilter] = useState<string>('all')
   const [selected, setSelected] = useState<string[]>([])
   const [compareOpen, setCompareOpen] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const refresh = useCallback(() => {
     setAllRuns(getRuns())
@@ -39,6 +46,41 @@ function History() {
   useEffect(() => {
     refresh()
   }, [refresh])
+
+  const handleExport = () => {
+    const json = exportRunsAsJson()
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `genai-lab-runs-${new Date().toISOString().slice(0, 10)}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    toast.success(`${allRuns.length}개의 Run을 내보냈습니다.`)
+  }
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // 같은 파일을 다시 선택할 수 있도록 reset
+    if (!file) return
+    try {
+      const text = await file.text()
+      const summary = importRunsFromJson(text)
+      refresh()
+      toast.success(
+        `${summary.imported}개 추가됨${summary.skipped > 0 ? ` · ${summary.skipped}개 skip` : ''}`,
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      toast.error('Import 실패', { description: message })
+    }
+  }
 
   const filtered = useMemo(() => {
     if (filter === 'all') return allRuns
@@ -99,23 +141,42 @@ function History() {
           <GitCompare className="mr-1.5 h-4 w-4" /> 비교 ({selected.length}/2)
         </Button>
 
-        {filtered.length > 0 && (
+        <div className="ml-auto flex items-center gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={handleImportFile}
+          />
+          <Button size="sm" variant="outline" onClick={handleImportClick}>
+            <Upload className="mr-1.5 h-4 w-4" /> Import
+          </Button>
           <Button
             size="sm"
             variant="outline"
-            className="ml-auto"
-            onClick={() => {
-              if (!confirm(`${filter === 'all' ? '모든' : '필터된'} Run 기록을 삭제하시겠습니까?`)) return
-              if (filter === 'all') clearRuns()
-              else clearRuns({ lessonId: filter })
-              refresh()
-              setSelected([])
-              toast.success('기록이 삭제되었습니다.')
-            }}
+            onClick={handleExport}
+            disabled={allRuns.length === 0}
           >
-            <Trash2 className="mr-1.5 h-4 w-4" /> 모두 삭제
+            <Download className="mr-1.5 h-4 w-4" /> Export
           </Button>
-        )}
+          {filtered.length > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                if (!confirm(`${filter === 'all' ? '모든' : '필터된'} Run 기록을 삭제하시겠습니까?`)) return
+                if (filter === 'all') clearRuns()
+                else clearRuns({ lessonId: filter })
+                refresh()
+                setSelected([])
+                toast.success('기록이 삭제되었습니다.')
+              }}
+            >
+              <Trash2 className="mr-1.5 h-4 w-4" /> 모두 삭제
+            </Button>
+          )}
+        </div>
       </div>
 
       {filtered.length === 0 ? (

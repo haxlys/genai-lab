@@ -3,8 +3,10 @@ import { createFileRoute, notFound } from '@tanstack/react-router'
 
 import { Badge } from '#/components/ui/badge'
 import { Separator } from '#/components/ui/separator'
+import { ErrorBoundary } from '#/components/shared/ErrorBoundary'
 import { LessonContent } from '#/components/lesson/LessonContent'
 import { LessonCode } from '#/components/lesson/LessonCode'
+import { LessonNavigation } from '#/components/lesson/LessonNavigation'
 import { SplitPane } from '#/components/lesson/SplitPane'
 import { RunPanel } from '#/components/lesson/RunPanel'
 import { RunHistoryList } from '#/components/lesson/RunHistoryList'
@@ -12,6 +14,7 @@ import { RunHistoryList } from '#/components/lesson/RunHistoryList'
 import { getLesson, getLessonSummary } from '#/lib/content'
 import { getLessonSpec } from '#/lib/lesson-specs'
 import { deleteRun, getRuns } from '#/lib/storage/runs'
+import { markVisited } from '#/lib/storage/progress'
 import type { Run } from '#/types/run'
 
 export const Route = createFileRoute('/lessons/$lessonId')({
@@ -41,6 +44,11 @@ function LessonPage() {
     refreshRuns()
   }, [refreshRuns])
 
+  // 진도 기록 — 페이지 진입 시 visitedLessons에 추가
+  useEffect(() => {
+    markVisited(lesson.id)
+  }, [lesson.id])
+
   return (
     <div className="container mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6">
@@ -65,7 +73,7 @@ function LessonPage() {
               typescriptReference={lesson.typescriptReference}
               typescriptSnippet={spec?.typescriptSnippet}
             />
-            <LessonContent markdown={lesson.contentMarkdown} />
+            <LessonContent markdown={lesson.contentMarkdown} imageMap={lesson.imageMap} />
           </div>
         }
         right={
@@ -76,12 +84,14 @@ function LessonPage() {
                 변수를 조정하고 Run을 누르면 LLM이 실시간으로 응답합니다. 결과는 자동으로 history에 저장됩니다.
               </p>
               {spec ? (
-                <RunPanel
-                  spec={spec}
-                  lessonId={lesson.id}
-                  initialValues={restoreInputs}
-                  onRunComplete={refreshRuns}
-                />
+                <ErrorBoundary>
+                  <RunPanel
+                    spec={spec}
+                    lessonId={lesson.id}
+                    initialValues={restoreInputs}
+                    onRunComplete={refreshRuns}
+                  />
+                </ErrorBoundary>
               ) : (
                 <div className="rounded-md bg-muted p-4 text-sm">
                   <p className="font-medium">이 레슨은 개념 학습용입니다.</p>
@@ -95,16 +105,18 @@ function LessonPage() {
 
             {spec && (
               <div className="rounded-lg border bg-card p-5">
-                <RunHistoryList
-                  runs={runs}
-                  onRestore={(run) => {
-                    setRestoreInputs(run.inputs)
-                  }}
-                  onDelete={(id) => {
-                    deleteRun(id)
-                    refreshRuns()
-                  }}
-                />
+                <ErrorBoundary>
+                  <RunHistoryList
+                    runs={runs}
+                    onRestore={(run) => {
+                      setRestoreInputs(run.inputs)
+                    }}
+                    onDelete={(id) => {
+                      deleteRun(id)
+                      refreshRuns()
+                    }}
+                  />
+                </ErrorBoundary>
               </div>
             )}
           </div>
@@ -112,6 +124,8 @@ function LessonPage() {
       />
 
       <Separator className="mt-12" />
+
+      <LessonNavigation currentId={lesson.id} />
     </div>
   )
 }

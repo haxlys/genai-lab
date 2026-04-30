@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { Search, Sparkles } from 'lucide-react'
 
+import { ThemeToggle } from './ThemeToggle'
+
 const NAV = [
   { to: '/', label: 'Home' },
   { to: '/lessons', label: 'Lessons' },
@@ -54,6 +56,7 @@ export function AppHeader() {
               </Link>
             ))}
           </nav>
+          <ThemeToggle />
         </div>
       </div>
     </header>
