@@ -7,6 +7,7 @@
 
 import type { ChatRequest, ChatResponseChunk } from '#/types/llm'
 import { callOpenAiCompat, streamOpenAiCompat } from './_openai-compat'
+import { LlmHttpError, buildErrorMessage } from './error-messages'
 
 const OPENAI_CHAT_ENDPOINT = 'https://api.openai.com/v1/chat/completions'
 
@@ -29,6 +30,8 @@ export async function streamChatCompletion(
     apiKey: options.apiKey,
     signal: options.signal,
     onChunk: options.onChunk,
+    buildError: (status, body, statusText) =>
+      new LlmHttpError(buildErrorMessage('openai', status, body, statusText)),
   })
 }
 
@@ -42,5 +45,7 @@ export async function chatCompletion(
     buildHeaders: () => ({ Authorization: `Bearer ${options.apiKey}` }),
     apiKey: options.apiKey,
     signal: options.signal,
+    buildError: (status, body, statusText) =>
+      new LlmHttpError(buildErrorMessage('openai', status, body, statusText)),
   })
 }

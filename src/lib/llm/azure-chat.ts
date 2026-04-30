@@ -8,6 +8,7 @@
 
 import type { ChatRequest, ChatResponseChunk } from '#/types/llm'
 import { callOpenAiCompat, streamOpenAiCompat } from './_openai-compat'
+import { LlmHttpError, buildErrorMessage } from './error-messages'
 
 const DEFAULT_API_VERSION = '2024-08-01-preview'
 
@@ -40,6 +41,8 @@ export async function streamChatCompletion(
     apiKey: options.apiKey,
     signal: options.signal,
     onChunk: options.onChunk,
+    buildError: (status, body, statusText) =>
+      new LlmHttpError(buildErrorMessage('azure', status, body, statusText)),
   })
 }
 
@@ -56,5 +59,7 @@ export async function chatCompletion(
     buildHeaders: () => ({ 'api-key': options.apiKey }),
     apiKey: options.apiKey,
     signal: options.signal,
+    buildError: (status, body, statusText) =>
+      new LlmHttpError(buildErrorMessage('azure', status, body, statusText)),
   })
 }

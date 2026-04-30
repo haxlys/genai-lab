@@ -8,6 +8,7 @@ import { VariableForm } from './VariableForm'
 import { OutputPanel, type RunState } from './OutputPanel'
 
 import { generateImage, runAgent, runEmbeddingSearch, runRag, streamChat } from '#/lib/llm'
+import { LlmHttpError } from '#/lib/llm/error-messages'
 import { saveRun } from '#/lib/storage/runs'
 import { getKeyForProvider, getSettings } from '#/lib/storage/settings'
 import type { VariableSpec } from '#/types/lesson'
@@ -259,8 +260,17 @@ export function RunPanel({
         setState({ status: 'idle' })
         return
       }
-      const message = err instanceof Error ? err.message : String(err)
-      setState({ status: 'error', message })
+      let message: string
+      let raw: string | undefined
+      if (err instanceof LlmHttpError) {
+        message = err.info.friendly
+        raw = err.info.raw
+      } else if (err instanceof Error) {
+        message = err.message
+      } else {
+        message = String(err)
+      }
+      setState({ status: 'error', message, raw })
       const r = spec.buildRequest(values)
       saveRun({
         lessonId,
@@ -273,7 +283,7 @@ export function RunPanel({
           promptTokens: 0,
           completionTokens: 0,
         },
-        error: message,
+        error: raw ? `${message}\n\n[raw]\n${raw}` : message,
       })
       onRunComplete?.()
     } finally {
