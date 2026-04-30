@@ -7,7 +7,7 @@
     "type": "Setup",
     "weekRecommended": null,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "01-introduction-to-genai",
@@ -17,7 +17,7 @@
     "type": "Learn",
     "weekRecommended": 1,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "02-exploring-and-comparing-different-llms",
@@ -27,7 +27,7 @@
     "type": "Learn",
     "weekRecommended": null,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "03-using-generative-ai-responsibly",
@@ -37,7 +37,7 @@
     "type": "Learn",
     "weekRecommended": 4,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "04-prompt-engineering-fundamentals",
@@ -127,7 +127,7 @@
     "type": "Learn",
     "weekRecommended": 2,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "13-securing-ai-applications",
@@ -137,7 +137,7 @@
     "type": "Learn",
     "weekRecommended": 4,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "14-the-generative-ai-application-lifecycle",
@@ -147,7 +147,7 @@
     "type": "Learn",
     "weekRecommended": 4,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "15-rag-and-vector-databases",
@@ -187,7 +187,7 @@
     "type": "Learn",
     "weekRecommended": 4,
     "apiCallType": "none",
-    "hasVariableSpec": false
+    "hasVariableSpec": true
   },
   {
     "id": "19-slm",
