@@ -6,6 +6,10 @@
  *
  * engine: oniguruma의 wasm 대신 JS regex (`engine-javascript`)를 사용해
  * wasm 파일 의존성을 제거. 일부 정밀도 손실이 있을 수 있으나 학습 코드 범위에서는 충분.
+ *
+ * 테마 선택: Night Owl은 색맹/저조도 환경 접근성을 명시적으로 고려한 테마로,
+ * github-dark 대비 다크모드에서 코드 가독성이 더 좋다 (배경 #011627 / 텍스트 #d6deeb).
+ * 라이트 모드는 동일 시리즈의 night-owl-light로 일관성 유지.
  */
 
 import { useEffect, useState } from 'react'
@@ -37,8 +41,8 @@ async function getHighlighter() {
       ])
       const highlighter = await createHighlighterCore({
         themes: [
-          import('shiki/themes/github-dark.mjs'),
-          import('shiki/themes/github-light.mjs'),
+          import('shiki/themes/night-owl.mjs'),
+          import('shiki/themes/night-owl-light.mjs'),
         ],
         langs: [
           import('shiki/langs/python.mjs'),
@@ -70,7 +74,7 @@ export function CodeBlock({ code, lang }: { code: string; lang: SupportedLang })
         if (!mounted) return
         const out = highlighter.codeToHtml(code, {
           lang,
-          themes: { light: 'github-light', dark: 'github-dark' },
+          themes: { light: 'night-owl-light', dark: 'night-owl' },
           defaultColor: false,
         })
         setHtml(out)
