@@ -5,6 +5,7 @@ import { Badge } from '#/components/ui/badge'
 import { Separator } from '#/components/ui/separator'
 import { LessonContent } from '#/components/lesson/LessonContent'
 import { LessonCode } from '#/components/lesson/LessonCode'
+import { LessonNavigation } from '#/components/lesson/LessonNavigation'
 import { SplitPane } from '#/components/lesson/SplitPane'
 import { RunPanel } from '#/components/lesson/RunPanel'
 import { RunHistoryList } from '#/components/lesson/RunHistoryList'
@@ -12,6 +13,7 @@ import { RunHistoryList } from '#/components/lesson/RunHistoryList'
 import { getLesson, getLessonSummary } from '#/lib/content'
 import { getLessonSpec } from '#/lib/lesson-specs'
 import { deleteRun, getRuns } from '#/lib/storage/runs'
+import { markVisited } from '#/lib/storage/progress'
 import type { Run } from '#/types/run'
 
 export const Route = createFileRoute('/lessons/$lessonId')({
@@ -41,6 +43,11 @@ function LessonPage() {
     refreshRuns()
   }, [refreshRuns])
 
+  // 진도 기록 — 페이지 진입 시 visitedLessons에 추가
+  useEffect(() => {
+    markVisited(lesson.id)
+  }, [lesson.id])
+
   return (
     <div className="container mx-auto max-w-7xl px-6 py-8">
       <header className="mb-6">
@@ -65,7 +72,7 @@ function LessonPage() {
               typescriptReference={lesson.typescriptReference}
               typescriptSnippet={spec?.typescriptSnippet}
             />
-            <LessonContent markdown={lesson.contentMarkdown} />
+            <LessonContent markdown={lesson.contentMarkdown} imageMap={lesson.imageMap} />
           </div>
         }
         right={
@@ -112,6 +119,8 @@ function LessonPage() {
       />
 
       <Separator className="mt-12" />
+
+      <LessonNavigation currentId={lesson.id} />
     </div>
   )
 }

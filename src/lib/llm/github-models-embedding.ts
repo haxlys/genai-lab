@@ -5,6 +5,7 @@
  */
 
 import type { EmbeddingRequest, EmbeddingResult } from '#/types/llm'
+import { LlmHttpError, buildErrorMessage } from './error-messages'
 
 const ENDPOINT = 'https://models.inference.ai.azure.com/embeddings'
 
@@ -27,7 +28,9 @@ export async function createEmbeddings(
   })
   if (!response.ok) {
     const text = await response.text().catch(() => '')
-    throw new Error(`GitHub Models embeddings ${response.status}: ${text.slice(0, 500)}`)
+    throw new LlmHttpError(
+      buildErrorMessage('github-models', response.status, text, response.statusText),
+    )
   }
   const json = (await response.json()) as {
     data: Array<{ index: number; embedding: number[] }>
