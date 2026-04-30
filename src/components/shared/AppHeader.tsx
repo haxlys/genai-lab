@@ -1,6 +1,8 @@
 import { Link } from '@tanstack/react-router'
 import { Sparkles } from 'lucide-react'
 
+import { ThemeToggle } from './ThemeToggle'
+
 const NAV = [
   { to: '/', label: 'Home' },
   { to: '/lessons', label: 'Lessons' },
@@ -17,19 +19,22 @@ export function AppHeader() {
           <Sparkles className="h-4 w-4" />
           genai-lab
         </Link>
-        <nav className="flex items-center gap-1 text-sm">
-          {NAV.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              activeProps={{ className: 'bg-accent text-foreground' }}
-              activeOptions={{ exact: item.to === '/' }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        <div className="flex items-center gap-2">
+          <nav className="flex items-center gap-1 text-sm">
+            {NAV.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                activeProps={{ className: 'bg-accent text-foreground' }}
+                activeOptions={{ exact: item.to === '/' }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   )
