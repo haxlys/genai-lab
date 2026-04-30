@@ -1,12 +1,16 @@
 /**
  * Provider-agnostic LLM 어댑터.
- * Chat completions: github-models. Image generation: openai-image.
+ * Chat completions: github-models / openai / azure (모두 OpenAI-compatible).
+ * Image generation: openai-image.
  * Embeddings/search: github-models-embedding.
  */
 
 import * as githubModels from './github-models'
+import * as openaiChat from './openai-chat'
+import * as azureChat from './azure-chat'
 import { generateImageOpenAi } from './openai-image'
 import { cosineSimilarity, createEmbeddings } from './github-models-embedding'
+import { getSettings } from '#/lib/storage/settings'
 import type {
   AgentRequest,
   AgentResult,
@@ -74,9 +78,25 @@ export async function streamChat(
       })
       break
     case 'openai':
-    case 'azure':
+      await openaiChat.streamChatCompletion(request, {
+        apiKey: options.apiKey,
+        signal: options.signal,
+        onChunk,
+      })
+      break
+    case 'azure': {
+      const settings = getSettings()
+      await azureChat.streamChatCompletion(request, {
+        apiKey: options.apiKey,
+        endpoint: settings.apiKeys.azureEndpoint,
+        deployment: settings.apiKeys.azureDeployment,
+        signal: options.signal,
+        onChunk,
+      })
+      break
+    }
     case 'huggingface':
-      throw new Error(`'${request.provider}' provider는 아직 구현되지 않았습니다 (MVP는 github-models만).`)
+      throw new Error(`'huggingface' provider chat completions는 아직 구현되지 않았습니다.`)
   }
 
   // index 순으로 정렬해 최종 toolCalls 배열 (동일 호출의 fragments는 모두 누적됨)

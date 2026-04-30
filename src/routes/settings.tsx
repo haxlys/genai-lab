@@ -8,11 +8,26 @@ import { Button } from '#/components/ui/button'
 import { Input } from '#/components/ui/input'
 import { Label } from '#/components/ui/label'
 import { Separator } from '#/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '#/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '#/components/ui/card'
 
 import { type ApiKeyMap, getSettings, updateSettings } from '#/lib/storage/settings'
+import type { Provider } from '#/types/llm'
 
 export const Route = createFileRoute('/settings')({ component: Settings })
+
+const PROVIDER_LABELS: Record<Provider, string> = {
+  'github-models': 'GitHub Models',
+  openai: 'OpenAI direct',
+  azure: 'Azure OpenAI',
+  huggingface: 'Hugging Face',
+}
 
 const KEY_FIELDS: Array<{
   name: keyof ApiKeyMap
@@ -97,6 +112,12 @@ function Settings() {
     toast.success('설정이 저장되었습니다.')
   }
 
+  const handleProviderChange = (provider: Provider) => {
+    const next = updateSettings({ defaultProvider: provider })
+    setSettings(next)
+    toast.success(`기본 chat provider: ${PROVIDER_LABELS[provider]}`)
+  }
+
   return (
     <div className="container mx-auto max-w-3xl px-6 py-12">
       <header className="mb-8">
@@ -106,6 +127,31 @@ function Settings() {
           서버나 다른 사용자에게 전송되지 않습니다.
         </p>
       </header>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>기본 Chat Provider</CardTitle>
+          <CardDescription>
+            chat completions(레슨 04~07, 교사 모드 등)를 어느 provider로 보낼지 결정합니다.
+            image/embedding/rag/agent는 spec이 결정한 provider 그대로 사용됩니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Select
+            value={settings.defaultProvider}
+            onValueChange={(v) => handleProviderChange(v as Provider)}
+          >
+            <SelectTrigger className="w-full max-w-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="github-models">GitHub Models (무료, 권장)</SelectItem>
+              <SelectItem value="openai">OpenAI direct (유료)</SelectItem>
+              <SelectItem value="azure">Azure OpenAI (기업 환경)</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
